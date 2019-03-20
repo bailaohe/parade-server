@@ -23,10 +23,10 @@ setup(
     author='He Bai',
     author_email='bailaohe@gmail.com',
 
-    description='A feature module of parade',
+    description='A server module of parade',
 
     keywords=["parade", "feature"],
-    url='https://github.com/bailaohe/parade-feature',
+    url='https://github.com/bailaohe/parade-server',
     platforms=["any"],
     classifiers=list(filter(None, classifiers.split("\n"))),
 
