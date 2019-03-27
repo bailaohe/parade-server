@@ -79,7 +79,7 @@ def _load_dash(app, context):
                 href="https://res.xiaomai5.com/parade/stylesheet-oil-and-gas.css",
                 rel="stylesheet"),
             html.Link(
-                href="https://res.xiaomai5.com/parade/dash_crm.css",
+                href="https://res.xiaomai5.com/parade/dash-crm.css",
                 rel="stylesheet"),
         ],
         className="row",
