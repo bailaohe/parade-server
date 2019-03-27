@@ -65,7 +65,7 @@ def _load_dash(app, context):
 
                 html.Div(
                     html.Img(
-                        src='https://s3-us-west-1.amazonaws.com/plotly-tutorials/logo/new-branding/dash-logo-by-plotly-stripe-inverted.png',
+                        src='https://res.xiaomai5.com/parade/dash-logo.png',
                         height="100%")
                     , style={"float": "right", "height": "100%"})
             ],
@@ -76,10 +76,10 @@ def _load_dash(app, context):
             html.Div(id="tab_content", className="row", style={"margin": "2% 3%"}),
 
             html.Link(
-                href="https://cdn.rawgit.com/plotly/dash-app-stylesheets/2d266c578d2a6e8850ebce48fdb52759b2aef506/stylesheet-oil-and-gas.css",
+                href="https://res.xiaomai5.com/parade/stylesheet-oil-and-gas.css",
                 rel="stylesheet"),
             html.Link(
-                href="https://cdn.rawgit.com/amadoukane96/8a8cfdac5d2cecad866952c52a70a50e/raw/cd5a9bf0b30856f4fc7e3812162c74bfc0ebe011/dash_crm.css",
+                href="https://res.xiaomai5.com/parade/dash_crm.css",
                 rel="stylesheet"),
         ],
         className="row",
