@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 from ..server import start_webapp
-from . import ParadeCommand
+from parade.command import ParadeCommand
 
 
 class ServerCommand(ParadeCommand):

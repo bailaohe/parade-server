@@ -2,7 +2,7 @@
 
 import dash_html_components as html
 import dash
-from ..core.context import Context
+from parade.core.context import Context
 
 
 class Dashboard(object):

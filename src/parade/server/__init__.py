@@ -1,8 +1,8 @@
 # -*- coding:utf-8 -*-
 from ..server.auth import DisabledSessionInterface, AuthManager
 from .dashboard import Dashboard
-from ..core.context import Context
-from ..utils.modutils import iter_classes, walk_modules
+from parade.core.context import Context
+from parade.utils.modutils import iter_classes, walk_modules
 
 
 def load_dashboards(app, context, name=None):

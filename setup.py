@@ -30,7 +30,7 @@ setup(
     platforms=["any"],
     classifiers=list(filter(None, classifiers.split("\n"))),
 
-    install_requires=['flask', 'flask_cors', 'flask_restful', 'Flask-SocketIO'],
+    install_requires=['flask', 'flask_cors', 'flask_restful', 'Flask-SocketIO', 'parade'],
 
     extras_require={
         "dash": ["dash", "dash-html-components", "dash-core-components", "dash-table", "flask-caching"],
