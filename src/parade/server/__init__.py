@@ -214,6 +214,10 @@ def start_webapp(context: Context, port=5000, enable_auth=True, enable_static=Fa
         app_dash = dash.Dash(__name__, server=app, url_base_pathname='/dashboard/')
         app_dash.config.suppress_callback_exceptions = True
 
+        # force dash to work in offline mode
+        app_dash.css.config.serve_locally = True
+        app_dash.scripts.config.serve_locally = True
+
         _load_dash(app_dash, context)
 
         def protect_views(app):
