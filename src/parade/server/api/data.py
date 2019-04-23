@@ -7,6 +7,8 @@ from . import parade_blueprint, ParadeResource, catch_parade_error
 from parade.connection.localfile import LocalFile
 from parade.core.task import ETLTask
 
+import pandas as pd
+
 api = Api(parade_blueprint, catch_all_404s=True)
 parser = reqparse.RequestParser()
 
@@ -39,7 +41,10 @@ class DataAPI(ParadeResource):
             response.headers["Content-Disposition"] = "attachment; filename=" + str(export_file)
             return response
 
-        data = json.loads(df.to_json(orient='records'))
+        if isinstance(df, pd.DataFrame):
+            data = json.loads(df.to_json(orient='records'))
+        else:
+            data = df
         return dict({'data': data}, **data_task.attributes) if complete else data
 
 
