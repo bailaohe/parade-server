@@ -5,6 +5,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 from flask_caching import Cache
+from flask_login import current_user
 
 from parade.core.context import Context
 
@@ -231,7 +232,15 @@ class SimpleDashboard(Dashboard):
     @property
     def layout(self):
         import uuid
+        # Initialize session id & user id
         session_id = str(uuid.uuid4())
+        user_id = None
+
+        # If we enable auth check then we can get our user id & session id from current_user
+        if current_user is not None:
+            session_id = current_user.token
+            user_id = current_user.id
+
         layout = [
             html.Div([html.H1(self.display_name)]),
         ]
@@ -281,6 +290,7 @@ class SimpleDashboard(Dashboard):
                 layout.append(row_layout)
 
         layout.append(html.Div(session_id, id='session-id', style={'display': 'none'}))
+        layout.append(html.Div(user_id, id='user-id', style={'display': 'none'}))
 
         return layout
 
