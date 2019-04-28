@@ -219,11 +219,11 @@ class SimpleDashboard(Dashboard):
                 return self.filter_map[id]
             if id in self.widget_map:
                 return self.widget_map[id]
-            raise ValueError('not found')
+            return None
 
         for (output, inputs) in self.subscribes.items():
             add_callback = self.app.callback(Output(self.name + '_' + output, _get_component(output).input_field),
-                                             [Input(self.name + '_' + i, _get_component(i).output_field) for (i, _) in
+                                             [Input(self.name + '_' + i, _get_component(i).output_field if _get_component(i) is not None else 'children') for (i, _) in
                                               inputs])
 
             arg_names = [name for (_, name) in inputs]
