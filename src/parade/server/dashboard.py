@@ -223,8 +223,9 @@ class SimpleDashboard(Dashboard):
 
         for (output, inputs) in self.subscribes.items():
             add_callback = self.app.callback(Output(self.name + '_' + output, _get_component(output).input_field),
-                                             [Input(self.name + '_' + i, _get_component(i).output_field if _get_component(i) is not None else 'children') for (i, _) in
-                                              inputs])
+                                             [Input(self.name + '_' + i, _get_component(i).output_field if _get_component(
+                                                        i) is not None else 'children')
+                                              for (i, _) in inputs])
 
             arg_names = [name for (_, name) in inputs]
             add_callback(_get_component(output).render_func(arg_names))
@@ -289,8 +290,8 @@ class SimpleDashboard(Dashboard):
                 row_layout = html.Div(row, className='row', style={'marginBottom': 10})
                 layout.append(row_layout)
 
-        layout.append(html.Div(session_id, id='session-id', style={'display': 'none'}))
-        layout.append(html.Div(user_id, id='user-id', style={'display': 'none'}))
+        layout.append(html.Div(session_id, id=self.name + '_session-id', style={'display': 'none'}))
+        layout.append(html.Div(user_id, id=self.name + '_user-id', style={'display': 'none'}))
 
         return layout
 
