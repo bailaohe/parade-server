@@ -111,11 +111,12 @@ class DashboardFilter(DashboardComponent):
 class DashboardWidget(DashboardComponent):
     _VALID_WIDGET_TYPE = ('table', 'indicator', 'figure')
 
-    def __init__(self, context, id, data_key, title, widget_type='table', post_processor=None, cache=None,
+    def __init__(self, context, id, data_key, title, widget_type='table', sub_type=None, post_processor=None, cache=None,
                  session_id='_'):
         DashboardComponent.__init__(self, context, id, data_key)
         self.title = title
         self.widget_type = widget_type
+        self.sub_type = sub_type
         self.cache = cache
         self.post_processor = post_processor
         self.session_id = session_id
@@ -152,7 +153,8 @@ class DashboardWidget(DashboardComponent):
             kwargs = dict(zip(input_arg_names, args))
             cache = self.cache
 
-            @cache.memoize()
+            # set the default cache timeout to 10 seconds
+            @cache.memoize(timeout=10)
             def reload_data(cache_key):
                 data = self.get_data(**kwargs)
                 return data
