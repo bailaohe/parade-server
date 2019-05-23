@@ -44,6 +44,14 @@ class Dashboard(object):
         return html.Div([html.H1('Content of dashboard [' + self.name + ']')])
 
 
+class DashboardSection(object):
+    __slots__ = ('title', 'rows')
+
+    def __init__(self, title, rows, row_offset=0):
+        self.title = title
+        self.rows = rows
+
+
 class DashboardComponent(object):
     __slots__ = ('context', 'id', 'data_key',)
 
@@ -111,7 +119,8 @@ class DashboardFilter(DashboardComponent):
 class DashboardWidget(DashboardComponent):
     _VALID_WIDGET_TYPE = ('table', 'indicator', 'figure')
 
-    def __init__(self, context, id, data_key, title, widget_type='table', sub_type=None, post_processor=None, cache=None,
+    def __init__(self, context, id, data_key, title, widget_type='table', sub_type=None, post_processor=None,
+                 cache=None,
                  session_id='_'):
         DashboardComponent.__init__(self, context, id, data_key)
         self.title = title
@@ -125,7 +134,7 @@ class DashboardWidget(DashboardComponent):
         if self.widget_type == 'table':
             import pandas as pd
             df = pd.DataFrame.from_records(data)
-            return html.Table(
+            table = html.Table(
                 # Header
                 [html.Tr([html.Th(col) for col in df.columns])] +
 
@@ -140,6 +149,10 @@ class DashboardWidget(DashboardComponent):
                     for i in range(len(df))
                 ]
             )
+            # return table
+            return html.Div([
+                table
+            ])
         return data
 
     @property
@@ -225,7 +238,8 @@ class SimpleDashboard(Dashboard):
 
         for (output, inputs) in self.subscribes.items():
             add_callback = self.app.callback(Output(self.name + '_' + output, _get_component(output).input_field),
-                                             [Input(self.name + '_' + i, _get_component(i).output_field if _get_component(
+                                             [Input(self.name + '_' + i,
+                                                    _get_component(i).output_field if _get_component(
                                                         i) is not None else 'children')
                                               for (i, _) in inputs])
 
@@ -270,6 +284,8 @@ class SimpleDashboard(Dashboard):
                 row_layout = html.Div(row, className='row', style={'marginBottom': 10})
                 layout.append(row_layout)
 
+        widget_rows = []
+        raw_widget_rows = []
         if len(self.widget_placeholders) > 0:
             for row_data in self.widget_placeholders:
                 assert isinstance(row_data, tuple), 'invalid row data'
@@ -290,12 +306,32 @@ class SimpleDashboard(Dashboard):
                             row.append(self._render_widget_layout(widget, component_width))
                     widget_idx += 1
                 row_layout = html.Div(row, className='row', style={'marginBottom': 10})
-                layout.append(row_layout)
+                raw_widget_rows.append(row_layout)
+
+            if len(self.sections) > 0:
+                # we need to split widget rows with sections
+                widget_rows = raw_widget_rows[:self.first_section_row]
+                raw_widget_rows = raw_widget_rows[self.first_section_row:]
+
+                for section in self.sections:
+                    if section.rows <= 0:
+                        raise ValueError('invalid section row count')
+                    widget_rows.append(self._render_section_layout(section))
+                    widget_rows.extend(raw_widget_rows[:section.rows])
+                    raw_widget_rows = raw_widget_rows[section.rows:]
+
+                if len(raw_widget_rows) > 0:
+                    widget_rows.extend(raw_widget_rows)
+
+            layout.extend(widget_rows)
 
         layout.append(html.Div(session_id, id=self.name + '_session-id', style={'display': 'none'}))
         layout.append(html.Div(user_id, id=self.name + '_user-id', style={'display': 'none'}))
 
         return layout
+
+    def _render_section_layout(self, section: DashboardSection):
+        return html.Div([html.H2(section.title)])
 
     def _render_filter_layout(self, filter: DashboardFilter, width: int):
         return html.Div(
@@ -342,6 +378,10 @@ class SimpleDashboard(Dashboard):
         if widget.widget_type == 'table':
             return html.Div(
                 [
+                    html.P(
+                        widget.title,
+                        className="twelve columns"
+                    ),
                     html.Div(
                         id=self.name + '_' + widget.id,
                         style={
@@ -377,3 +417,11 @@ class SimpleDashboard(Dashboard):
     @property
     def subscribes(self):
         return {}
+
+    @property
+    def sections(self):
+        return []
+
+    @property
+    def first_section_row(self):
+        return 0
