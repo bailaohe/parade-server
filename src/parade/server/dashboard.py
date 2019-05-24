@@ -322,6 +322,8 @@ class SimpleDashboard(Dashboard):
 
                 if len(raw_widget_rows) > 0:
                     widget_rows.extend(raw_widget_rows)
+            else:
+                widget_rows.extend(raw_widget_rows)
 
             layout.extend(widget_rows)
 
