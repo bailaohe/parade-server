@@ -223,7 +223,7 @@ def start_webapp(context: Context, port=5000, enable_auth=True, enable_static=Fa
         def protect_views(app):
             from flask_login import login_required
             for view_func in app.server.view_functions:
-                if view_func.startswith(app.url_base_pathname):
+                if view_func.startswith(app.config.url_base_pathname):
                     app.server.view_functions[view_func] = login_required(app.server.view_functions[view_func])
 
             return app
@@ -236,7 +236,7 @@ def start_webapp(context: Context, port=5000, enable_auth=True, enable_static=Fa
             import flask
             return flask.redirect('/dash')
 
-        from werkzeug.wsgi import DispatcherMiddleware
+        from werkzeug.middleware.dispatcher import DispatcherMiddleware
         app = DispatcherMiddleware(app, {
             '/dash': app_dash.server
         })
