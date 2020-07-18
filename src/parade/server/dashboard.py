@@ -427,3 +427,202 @@ class SimpleDashboard(Dashboard):
     @property
     def first_section_row(self):
         return 0
+
+
+class SimpleDashboard2(Dashboard):
+    """
+    SimpleDashboard adds some strong constraints to dashboard system.
+    In SimpleDashboard, we assume the dashboard contains two section:
+    **Filters** and **Widgets**.
+
+    Filter section contains one or more filters to compose a filter-chain
+    with the last one as **trigger**. When the trigger filter is fired,
+    one or several data frame will be retrieved and cached to render
+    the widget section.
+
+    Widget section is used to layout all visualized widgets. All these
+    widget is rendered with a single data frame cached and retrieved
+    when trigger filter is fired.
+    """
+
+    def __init__(self, app: dash.Dash, context: Context):
+        Dashboard.__init__(self, app, context)
+
+        filter_map = {}
+        for dashboard_filter in self.filters:
+            if dashboard_filter:
+                filter_map[dashboard_filter.id] = dashboard_filter
+
+        self.filter_map = filter_map
+
+        widget_map = {}
+        for widget in self.widgets:
+            if widget:
+                widget_map[widget.id] = widget
+        self.widget_map = widget_map
+
+        self._init_callbacks()
+
+    def _init_callbacks(self):
+
+        def _get_component(id):
+            if id in self.filter_map:
+                return self.filter_map[id]
+            if id in self.widget_map:
+                return self.widget_map[id]
+            return None
+
+        for (output, inputs) in self.subscribes.items():
+            add_callback = self.app.callback(Output(self.name + '_' + output, _get_component(output).input_field),
+                                             [Input(self.name + '_' + i,
+                                                    _get_component(i).output_field if _get_component(
+                                                        i) is not None else 'children')
+                                              for (i, _) in inputs])
+
+            arg_names = [name for (_, name) in inputs]
+            add_callback(_get_component(output).render_func(arg_names))
+
+    @property
+    def layout(self):
+        import uuid
+        # Initialize session id & user id
+        session_id = str(uuid.uuid4())
+        user_id = None
+
+        # If we enable auth check then we can get our user id & session id from current_user
+        if current_user is not None:
+            session_id = current_user.token
+            user_id = current_user.id
+
+        layout = []
+
+        if len(self.filter_placeholders) > 0:
+            for row_data in self.filter_placeholders:
+                assert isinstance(row_data, tuple), 'invalid row data'
+                row_width = 0
+                for component_width in row_data:
+                    assert isinstance(component_width, int), 'invalid row data'
+                    row_width = row_width + component_width
+                if row_width != 12:
+                    raise ValueError('row should be of width 12')
+
+            filter_idx = 0
+            for row_data in self.filter_placeholders:
+                row = []
+                for component_width in row_data:
+                    if len(self.filters) > filter_idx:
+                        dashboard_filter = self.filters[filter_idx]
+                        if dashboard_filter:
+                            row.append(self._render_filter_layout(dashboard_filter, component_width))
+                    filter_idx += 1
+                row_layout = html.Div(row, className='row', style={'marginBottom': 10})
+                layout.append(row_layout)
+
+        widget_rows = []
+        raw_widget_rows = []
+        if len(self.widget_placeholders) > 0:
+            for row_data in self.widget_placeholders:
+                assert isinstance(row_data, tuple), 'invalid row data'
+                row_width = 0
+                for component_width in row_data:
+                    assert isinstance(component_width, int), 'invalid row data'
+                    row_width = row_width + component_width
+                if row_width != 12:
+                    raise ValueError('row should be of width 12')
+
+            widget_idx = 0
+            for row_data in self.widget_placeholders:
+                row = []
+                for component_width in row_data:
+                    if len(self.widgets) > widget_idx:
+                        widget = self.widgets[widget_idx]
+                        if widget:
+                            row.append(self._render_widget_layout(widget, component_width))
+                    widget_idx += 1
+                row_layout = html.Div(row, className='parade-row')
+                raw_widget_rows.append(row_layout)
+
+            if len(self.sections) > 0:
+                # we need to split widget rows with sections
+                widget_rows = raw_widget_rows[:self.first_section_row]
+                raw_widget_rows = raw_widget_rows[self.first_section_row:]
+
+                for section in self.sections:
+                    if section.rows <= 0:
+                        raise ValueError('invalid section row count')
+                    widget_rows.append(self._render_section_layout(section))
+                    widget_rows.extend(raw_widget_rows[:section.rows])
+                    raw_widget_rows = raw_widget_rows[section.rows:]
+
+                if len(raw_widget_rows) > 0:
+                    widget_rows.extend(raw_widget_rows)
+            else:
+                widget_rows.extend(raw_widget_rows)
+
+            layout.extend(widget_rows)
+
+        layout.append(html.Div(session_id, id=self.name + '_session-id', style={'display': 'none'}))
+        layout.append(html.Div(user_id, id=self.name + '_user-id', style={'display': 'none'}))
+
+        return layout
+
+    def _render_section_layout(self, section: DashboardSection):
+        return html.Div([html.H2(section.title)])
+
+    def _render_filter_layout(self, filter: DashboardFilter, width: int):
+        return html.Div(
+            dcc.Dropdown(
+                id=self.name + '_' + filter.id,
+                options=filter.get_data() if filter.auto_render else [{'label': '-', 'value': '-'}],
+                value=filter.default_value,
+                clearable=False,
+                placeholder=filter.placeholder
+            ),
+            className=DashboardComponent.get_css_class(width)
+        )
+
+    def _render_widget_layout(self, widget: DashboardWidget, width: int):
+        import plotly.figure_factory as ff
+
+        df = [dict(Task="Job A", Start='2009-01-01', Finish='2009-02-28'),
+              dict(Task="Job B", Start='2009-03-05', Finish='2009-04-15'),
+              dict(Task="Job C", Start='2009-02-20', Finish='2009-05-30')]
+
+        fig = ff.create_gantt(df, title='FUCK gantt')
+
+        return html.Div([
+            dcc.Graph(
+                id=self.name + '_' + widget.id,
+                # style={"height": "90%", "width": "98%"},
+                config=dict(displayModeBar=False),
+                figure=fig
+            ),
+        ], className='parade-widget full')
+
+    @property
+    def filter_placeholders(self):
+        return []
+
+    @property
+    def widget_placeholders(self):
+        return []
+
+    @property
+    def filters(self):
+        return []
+
+    @property
+    def widgets(self):
+        return []
+
+    @property
+    def subscribes(self):
+        return {}
+
+    @property
+    def sections(self):
+        return []
+
+    @property
+    def first_section_row(self):
+        return 0

@@ -1,4 +1,6 @@
 # -*- coding:utf-8 -*-
+import time
+
 from ..server.auth import DisabledSessionInterface, AuthManager
 from .dashboard import Dashboard
 from parade.core.context import Context
@@ -39,68 +41,66 @@ def _load_dash(app, context):
     import dash_core_components as dcc
     from dash.dependencies import Input, Output
 
+    # load the dashboards
     dashboards = load_dashboards(app, context)
+    # load the dashboard options
     dashboard_opts = [{'label': dashboards[dashkey].display_name, 'value': dashkey} for dashkey in dashboards]
-    default_dashboard = None
-    # if len(dashboard_opts) > 0:
-    #     default_dashboard = dashboard_opts[0]['value']
+
+    default_opt = None
+    if len(dashboard_opts) > 0:
+        default_opt = dashboard_opts[0]
+
+    # subscribe the path update
+    dash_header = [html.Div('Please select a dashboard' if not default_opt else default_opt['label'],
+                            id='dash-index-title', className='half')]
+    if len(dashboard_opts) > 0:
+        dash_header.append(html.Div(dcc.Dropdown(id='dash-selector', options=dashboard_opts, value=default_opt['value']),
+                                    className='half'))
 
     app.layout = html.Div(
         [
-            dcc.Location(id='url', refresh=False),
-            # header
-            html.Div([
+            dcc.Location(id='dash-url', refresh=False),
 
-                html.Span("Parade Dashboard", className='app-title four columns', style={"marginTop": "8px"}),
+            # dash header row
+            html.Div(dash_header, className='parade-row index-header', style={'align-items': 'center'}),
 
-                html.Div([
-                    dcc.Dropdown(
-                        id="tabs",
-                        options=dashboard_opts,
-                        value=default_dashboard
-                    )], className="two columns", style={"marginTop": "16px"}),
-
-                # # title content
-                # html.Div(id="title_placeholder", className="two columns", style={"marginTop": "16px"}),
-
-                html.Div(
-                    html.Img(
-                        src='https://res.xiaomai5.com/parade/dash-logo.png',
-                        height="100%")
-                    , style={"float": "right", "height": "100%"})
-            ],
-                className="row header"
+            # dash content
+            # html.Div(id="dash-content", className='parade-row full'),
+            dcc.Loading(
+                id="dash-content-loading",
+                children=[html.Div([html.Div(id="dash-content")])],
+                type="circle",
+                className="parade-row full",
             ),
 
-            # Tab content
-            html.Div(id="tab_content", className="row", style={"margin": "2% 3%"}),
-
+            # the base stylesheet
             html.Link(
-                href="https://res.xiaomai5.com/parade/stylesheet-oil-and-gas.css",
-                rel="stylesheet"),
+                href='https://res.xiaomai5.com/parade/parade-dash.css',
+                rel='stylesheet'),
             html.Link(
-                href="https://res.xiaomai5.com/parade/dash-crm.css",
-                rel="stylesheet"),
+                href='/static/dash.css',
+                rel='stylesheet')
         ],
-        className="row",
-        style={"margin": "0%"},
     )
 
-    @app.callback(Output("tab_content", "children"),
-                  [Input('url', 'pathname'),
-                   Input('tabs', 'value')])
-    def render_content(path, dropdown_tab):
+    @app.callback(Output("dash-content", "children"),
+                  [Input('dash-url', 'pathname'),
+                   Input('dash-selector', 'value')])
+    def render_content(path, sel_tab):
+        time.sleep(1)
         if not path:
-            return html.Div([html.H1("Please select the dashboard")])
+            return html.Div([html.H1("No dashboard selected")])
         path_tab = path[len('/dashboard/'):]
         if len(path_tab) == 0:
             path_tab = None
 
-        tab = dropdown_tab or path_tab
-        if tab in dashboards:
+        tab = sel_tab or path_tab
+        if default_opt:
+            return dashboards[default_opt['value']].layout
+        elif tab in dashboards:
             return dashboards[tab].layout
         else:
-            return html.Div([html.H1("Please select the dashboard")])
+            return html.Div([html.H1("No dashboard selected")])
 
 
 def _init_web(context, enable_auth):
