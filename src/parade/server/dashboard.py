@@ -4,44 +4,10 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
-from flask_caching import Cache
 from flask_login import current_user
 
 from parade.core.context import Context
-
-
-class Dashboard(object):
-
-    def __init__(self, app: dash.Dash, context: Context):
-        self.app = app
-        self.context = context
-
-        self.cache = Cache(app.server, config={
-            # Note that filesystem cache doesn't work on systems with ephemeral
-            # filesystems like Heroku.
-            'CACHE_TYPE': 'filesystem',
-            'CACHE_DIR': 'cache-directory',
-
-            # should be equal to maximum number of users on the app at a single time
-            # higher numbers will store more data in the filesystem / redis cache
-            'CACHE_THRESHOLD': 200
-        })
-
-    @property
-    def name(self):
-        """
-        get the identifier of the task, the default is the class name of task
-        :return: the task identifier
-        """
-        return self.__module__.split('.')[-1]
-
-    @property
-    def display_name(self):
-        return self.name
-
-    @property
-    def layout(self):
-        return html.Div([html.H1('Content of dashboard [' + self.name + ']')])
+from .dash import Dashboard
 
 
 class DashboardSection(object):
