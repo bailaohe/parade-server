@@ -94,8 +94,6 @@ def _load_dash(app, context):
             path_tab = None
 
         tab = sel_tab or path_tab
-        # if default_opt:
-        #     return dashboards[default_opt['value']].layout
         if tab in dashboards:
             return dashboards[tab].layout
         else:
