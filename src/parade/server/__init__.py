@@ -87,7 +87,6 @@ def _load_dash(app, context):
                   [Input('dash-url', 'pathname'),
                    Input('dash-selector', 'value')])
     def render_content(path, sel_tab):
-        time.sleep(1)
         if not path:
             return html.Div([html.H1("No dashboard selected")])
         path_tab = path[len('/dashboard/'):]
@@ -95,9 +94,9 @@ def _load_dash(app, context):
             path_tab = None
 
         tab = sel_tab or path_tab
-        if default_opt:
-            return dashboards[default_opt['value']].layout
-        elif tab in dashboards:
+        # if default_opt:
+        #     return dashboards[default_opt['value']].layout
+        if tab in dashboards:
             return dashboards[tab].layout
         else:
             return html.Div([html.H1("No dashboard selected")])
