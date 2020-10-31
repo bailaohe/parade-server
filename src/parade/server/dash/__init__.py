@@ -3,6 +3,7 @@ from importlib import import_module
 import dash
 import dash_html_components as html
 import dash_core_components as dcc
+import dash_table
 from dash.dependencies import Input, Output
 from flask_caching import Cache
 from flask_login import current_user
@@ -137,11 +138,14 @@ class ConfigurableDashboard(Dashboard):
         if comp_key in self.config_dict['components']:
             auto_render = 'subscribes' not in self.config_dict or comp_key not in self.config_dict['subscribes']
             component = self.config_dict['components'][comp_key]
+            comp_data = self._load_component_data(component) if auto_render else []
             component_id = self.name + '_' + comp_key
+
             if component['type'] == 'filter':
                 return dcc.Dropdown(
                     id=component_id,
-                    options=self._load_component_data(component) if auto_render else [{'label': '-', 'value': '-'}],
+                    #options=self._load_component_data(component) if auto_render else [{'label': '-', 'value': '-'}],
+                    options=comp_data,
                     value=None,
                     clearable=False,
                     # placeholder='placeholder'
@@ -187,7 +191,7 @@ class ConfigurableDashboard(Dashboard):
                                               for input_item in inputs])
 
             input_as = [input_item['as'] for input_item in inputs]
-            add_callback(self._render_component(output_key, input_as))
+            add_callback(self._render_component_func(output_key, input_as))
 
     def _load_component_data(self, comp, **kwargs):
         import pandas as pd
@@ -201,32 +205,17 @@ class ConfigurableDashboard(Dashboard):
 
         return data
 
-    def _pre_render_component(self, comp, data):
-        if comp['type'] == 'table':
+    def _render_component(self, comp, data):
+        if 'subtype' in comp and comp['subtype'] == 'table':
             import pandas as pd
             df = pd.DataFrame.from_records(data)
-            table = html.Table(
-                # Header
-                [html.Tr([html.Th(col) for col in df.columns])] +
-
-                # Body
-                [
-                    html.Tr(
-                        [
-                            html.Td(df.iloc[i][col])
-                            for col in df.columns
-                        ]
-                    )
-                    for i in range(len(df))
-                ]
+            return dash_table.DataTable(
+                data=df.to_dict('records'),
+                columns=[{'id': c, 'name': c} for c in df.columns],
             )
-            # return table
-            return html.Div([
-                table
-            ])
         return data
 
-    def _render_component(self, comp_key, input_arg_names):
+    def _render_component_func(self, comp_key, input_arg_names):
         import functools
 
         def render_func_generator(key, *args):
@@ -235,7 +224,7 @@ class ConfigurableDashboard(Dashboard):
             cached = 'cache' in comp and comp['cache'] == 'true'
 
             if not cached:
-                output = self._load_component_data(comp, **kwargs)
+                comp_data = self._load_component_data(comp, **kwargs)
             else:
                 # set the default cache timeout to 10 seconds
                 cache = self.cache
@@ -254,14 +243,14 @@ class ConfigurableDashboard(Dashboard):
                 if current_user is not None:
                     session_id = current_user.token
                     cache_key = self.name + '-' + session_id + '-' + key + '-' + param_key
-                output = reload_data(cache_key)
+                comp_data = reload_data(cache_key)
 
             if 'convert' in comp:
                 dash_mod = import_module(self.context.name + '.dashboard')
                 output_processor = getattr(dash_mod, '_processor_' + comp['convert'])
-                output = output_processor(output)
+                comp_data = output_processor(comp_data)
 
-            output = self._pre_render_component(comp, output)
+            output = self._render_component(comp, comp_data)
 
             return output
 
