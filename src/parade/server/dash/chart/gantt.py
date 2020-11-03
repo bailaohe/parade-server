@@ -157,16 +157,17 @@ class GanttChart(CustomChart):  # noqa: H601
             y=[y_pos - self.rh / 2],
         )
 
-    def create_layout(self):
+    def create_layout(self, df_raw, **kwargs):
         """Extend the standard layout.
 
         Returns:
             dict: layout for Dash figure
 
         """
-        layout = super().create_layout()
+        layout = super().create_layout(df_raw, **kwargs)
         # Suppress Y axis ticks/grid
         layout['yaxis']['showgrid'] = False
         layout['yaxis']['showticklabels'] = False
         layout['yaxis']['zeroline'] = False
+        layout['height'] = (len(df_raw) + 5) * 20 + 260
         return layout

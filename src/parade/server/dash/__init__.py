@@ -207,24 +207,14 @@ class ConfigurableDashboard(Dashboard):
         if 'type' in comp and comp['type'] == 'chart':
             from parade.server.dash.chart.gantt import GanttChart
             import pandas as pd
-            from io import StringIO
             chart_main = GanttChart(
-                title='Sample Gantt Chart',
+                title=comp['title'],
                 xlabel=None,
                 ylabel=None,
             )
-            csv_data = """
-category,label,start,end,progress
-Initial Development,Init CustomChart,2019-09-05,2019-10-01,1
-Initial Development,Create base line chart,2019-10-05,2019-10-15,1
-Initial Development,Initial Release,,2019-10-29,
-Test Framework,Reach 100% Coverage,2019-10-15,2020-01-05,0.8
-Test Framework,Stable release,,2019-11-20,
-                        """
-            # data = pd.read_csv(StringIO(csv_data), sep=",")
             return html.Div(
                 children=[
-                    html.H4(children=self.name),
+                    # html.H4(children=self.name),
                     html.Div([min_graph(
                         figure=chart_main.create_figure(df_raw=data),
                     )]),

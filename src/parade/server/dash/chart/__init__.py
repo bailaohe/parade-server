@@ -77,7 +77,7 @@ class CustomChart:  # noqa: H601
         """
         return {
             'data': self.create_traces(df_raw, **kwargs_data),
-            'layout': go.Layout(self.apply_custom_layout(self.create_layout())),
+            'layout': go.Layout(self.apply_custom_layout(self.create_layout(df_raw))),
         }
 
     def create_traces(self, df_raw, **kwargs_data):
@@ -95,7 +95,7 @@ class CustomChart:  # noqa: H601
         """
         raise NotImplementedError('create_traces must be implemented by child class')  # pragma: no cover
 
-    def create_layout(self):
+    def create_layout(self, df_raw, **kwargs):
         """Return the standard layout. Can be overridden and modified when inherited.
 
         Returns:
