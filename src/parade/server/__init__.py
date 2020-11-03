@@ -36,6 +36,21 @@ def load_contrib_apis(app, context):
             pass
 
 
+tab_style = {
+    'borderBottom': '1px solid #d6d6d6',
+    'padding': '6px',
+    'fontWeight': 'bold'
+}
+
+tab_selected_style = {
+    'borderTop': '1px solid #d6d6d6',
+    'borderBottom': '1px solid #d6d6d6',
+    'backgroundColor': '#119DFF',
+    'color': 'white',
+    'padding': '6px'
+}
+
+
 def _load_dash(app, context):
     import dash_html_components as html
     import dash_core_components as dcc
@@ -44,30 +59,18 @@ def _load_dash(app, context):
     # load the dashboards
     dashboards = load_dashboards(app, context)
     # load the dashboard options
-    dashboard_opts = [{'label': dashboards[dashkey].display_name, 'value': dashkey} for dashkey in dashboards]
-
-    default_opt = None
-    if len(dashboard_opts) > 0:
-        default_opt = dashboard_opts[0]
-
-    # subscribe the path update
-    dash_header = [html.Div('Please select a dashboard' if not default_opt else default_opt['label'],
-                            id='dash-index-title', className='half')]
-    if len(dashboard_opts) > 0:
-        dash_header.append(html.Div(dcc.Dropdown(id='dash-selector', options=dashboard_opts, value=default_opt['value']),
-                                    className='half'))
+    dashboard_links = [dcc.Link(dashboards[dashkey].display_name, href='/dashboard/' + dashkey, className='active') for dashkey in dashboards]
 
     app.layout = html.Div(
         [
             dcc.Location(id='dash-url', refresh=False),
 
-            # dash header row
-            html.Div(dash_header, className='parade-row index-header', style={'align-items': 'center'}),
+            html.Div(dashboard_links, className='sidebar', id='dash-nav'),
 
             # dash content
             dcc.Loading(
                 id="dash-content-loading",
-                children=[html.Div([html.Div(id="dash-content")])],
+                children=[html.Div(id="dash-content", className='content')],
                 type="circle",
                 className="parade-row full",
             ),
@@ -77,26 +80,39 @@ def _load_dash(app, context):
                 href='https://res.xiaomai5.com/parade/parade-dash.css',
                 rel='stylesheet'),
             html.Link(
+                href='/static/nav.css',
+                rel='stylesheet'),
+            html.Link(
                 href='/static/dash.css',
                 rel='stylesheet')
         ],
     )
 
     @app.callback(Output("dash-content", "children"),
-                  [Input('dash-url', 'pathname'),
-                   Input('dash-selector', 'value')])
-    def render_content(path, sel_tab):
-        if not path:
-            return html.Div([html.H1("No dashboard selected")])
+                  [Input('dash-url', 'pathname')])
+    def render_content(path):
         path_tab = path[len('/dashboard/'):]
         if len(path_tab) == 0:
             path_tab = None
 
-        tab = sel_tab or path_tab
+        tab = path_tab
         if tab in dashboards:
             return dashboards[tab].layout
         else:
             return html.Div([html.H1("No dashboard selected")])
+
+    @app.callback(Output("dash-nav", "children"),
+                  [Input('dash-url', 'pathname')])
+    def render_content(path):
+        path_tab = path[len('/dashboard/'):]
+        if len(path_tab) == 0:
+            path_tab = None
+
+        tab = path_tab
+        if tab in dashboards:
+            return [dcc.Link(dashboards[dashkey].display_name, href='/dashboard/' + dashkey, className='active' if tab == dashkey else 'inactive') for dashkey in dashboards]
+        else:
+            return [dcc.Link(dashboards[dashkey].display_name, href='/dashboard/' + dashkey) for dashkey in dashboards]
 
 
 def _init_web(context, enable_auth):
