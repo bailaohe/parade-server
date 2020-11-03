@@ -10,6 +10,7 @@ from flask_login import current_user
 import uuid
 
 from parade.core.context import Context
+from parade.server.dash.utils import min_graph
 
 
 class Dashboard(object):
@@ -150,24 +151,12 @@ class ConfigurableDashboard(Dashboard):
                     clearable=False,
                     # placeholder='placeholder'
                 )
-            elif component['type'] == 'widget':
+            elif component['type'] == 'table':
+                return html.Div([], id=component_id)
+            elif component['type'] == 'chart':
                 return html.Div([], id=component_id)
             return 'children'
         return 'INVALID COMPONENT [' + comp_key + ']'
-
-        # import plotly.figure_factory as ff
-        # if comp_key in self.config_dict['components']:
-        #     df = [dict(Task="Job A", Start='2009-01-01', Finish='2009-02-28'),
-        #           dict(Task="Job B", Start='2009-03-05', Finish='2009-04-15'),
-        #           dict(Task="Job C", Start='2009-02-20', Finish='2009-05-30')]
-        #
-        #     fig = ff.create_gantt(df, title='FUCK gantt')
-        #
-        #     return dcc.Graph(
-        #         id=self.name + '_' + comp_key,
-        #         config=dict(displayModeBar=False),
-        #         figure=fig
-        #     )
 
     def init_component_subscription(self):
         def _get_input_field(comp_key):
@@ -206,12 +195,40 @@ class ConfigurableDashboard(Dashboard):
         return data
 
     def _render_component(self, comp, data):
-        if 'subtype' in comp and comp['subtype'] == 'table':
+        if len(data) == 0:
+            return data
+        if 'type' in comp and comp['type'] == 'table':
             import pandas as pd
             df = pd.DataFrame.from_records(data)
             return dash_table.DataTable(
                 data=df.to_dict('records'),
                 columns=[{'id': c, 'name': c} for c in df.columns],
+            )
+        if 'type' in comp and comp['type'] == 'chart':
+            from parade.server.dash.chart.gantt import GanttChart
+            import pandas as pd
+            from io import StringIO
+            chart_main = GanttChart(
+                title='Sample Gantt Chart',
+                xlabel=None,
+                ylabel=None,
+            )
+            csv_data = """
+category,label,start,end,progress
+Initial Development,Init CustomChart,2019-09-05,2019-10-01,1
+Initial Development,Create base line chart,2019-10-05,2019-10-15,1
+Initial Development,Initial Release,,2019-10-29,
+Test Framework,Reach 100% Coverage,2019-10-15,2020-01-05,0.8
+Test Framework,Stable release,,2019-11-20,
+                        """
+            # data = pd.read_csv(StringIO(csv_data), sep=",")
+            return html.Div(
+                children=[
+                    html.H4(children=self.name),
+                    html.Div([min_graph(
+                        figure=chart_main.create_figure(df_raw=data),
+                    )]),
+                ],
             )
         return data
 

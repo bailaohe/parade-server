@@ -2,7 +2,7 @@
 import time
 
 from ..server.auth import DisabledSessionInterface, AuthManager
-from .dashboard import Dashboard
+from .dash import Dashboard
 from parade.core.context import Context
 from parade.utils.modutils import iter_classes, walk_modules
 
@@ -65,7 +65,6 @@ def _load_dash(app, context):
             html.Div(dash_header, className='parade-row index-header', style={'align-items': 'center'}),
 
             # dash content
-            # html.Div(id="dash-content", className='parade-row full'),
             dcc.Loading(
                 id="dash-content-loading",
                 children=[html.Div([html.Div(id="dash-content")])],
