@@ -1,10 +1,9 @@
 # -*- coding:utf-8 -*-
-import time
 
-from ..server.auth import DisabledSessionInterface, AuthManager
-from .dash import Dashboard
 from parade.core.context import Context
 from parade.utils.modutils import iter_classes, walk_modules
+from .dash import Dashboard, ConfigurableDashboard
+from ..server.auth import DisabledSessionInterface, AuthManager
 
 
 def load_dashboards(app, context, name=None):
@@ -19,6 +18,26 @@ def load_dashboards(app, context, name=None):
         if name and dash_name != name:
             continue
         d[dash_name] = dashboard
+    return d
+
+
+def load_dashboards_by_config(app, context, name=None):
+    import os
+    import yaml
+    d = {}
+    dash_dir = os.path.join(context.workdir, 'dashboard')
+    if os.path.exists(dash_dir):
+        dash_configs = [f for f in os.listdir(dash_dir) if os.path.isfile(os.path.join(dash_dir, f))]
+        for dash_config in dash_configs:
+            with open(os.path.join(dash_dir, dash_config), 'r') as dash_yaml:
+                config_dict = yaml.safe_load(dash_yaml)
+                if not config_dict:
+                    continue
+                dashboard = ConfigurableDashboard(app, context, config=config_dict)
+                dash_name = os.path.splitext(os.path.basename(dash_config))[0]
+                if name and dash_name != name:
+                    continue
+                d[dash_name] = dashboard
     return d
 
 
@@ -57,7 +76,7 @@ def _load_dash(app, context):
     from dash.dependencies import Input, Output
 
     # load the dashboards
-    dashboards = load_dashboards(app, context)
+    dashboards = load_dashboards_by_config(app, context)
     # load the dashboard options
     dashboard_links = [dcc.Link(dashboards[dashkey].display_name, href='/dashboard/' + dashkey, className='active') for dashkey in dashboards]
 

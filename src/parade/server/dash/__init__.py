@@ -15,7 +15,7 @@ from parade.server.dash.utils import min_graph
 
 class Dashboard(object):
 
-    def __init__(self, app: dash.Dash, context: Context):
+    def __init__(self, app: dash.Dash, context: Context, **kwargs):
         self.app = app
         self.context = context
 
@@ -73,9 +73,11 @@ class ConfigurableDashboard(Dashboard):
     widgets.
     """
 
-    def __init__(self, app: dash.Dash, context: Context):
+    def __init__(self, app: dash.Dash, context: Context, **kwargs):
         Dashboard.__init__(self, app, context)
-        self.config_dict = self.load_config()
+        self.config_dict = kwargs.get('config', None)
+        if not self.config_dict:
+            self.config_dict = self.load_config()
         self.parsed_layout = self.parse_rows(self.config_dict['layout'])
         self.init_component_subscription()
 
