@@ -33,8 +33,8 @@ def load_dashboards_by_config(app, context, name=None):
                 config_dict = yaml.safe_load(dash_yaml)
                 if not config_dict:
                     continue
-                dashboard = ConfigurableDashboard(app, context, config=config_dict)
                 dash_name = os.path.splitext(os.path.basename(dash_config))[0]
+                dashboard = ConfigurableDashboard(app, context, config_name=dash_name, config=config_dict)
                 if name and dash_name != name:
                     continue
                 d[dash_name] = dashboard

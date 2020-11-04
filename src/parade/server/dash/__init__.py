@@ -83,11 +83,20 @@ class ConfigurableDashboard(Dashboard):
 
     def __init__(self, app: dash.Dash, context: Context, **kwargs):
         Dashboard.__init__(self, app, context)
+        self.config_name = kwargs.get('config_name', None)
         self.config_dict = kwargs.get('config', None)
         if not self.config_dict:
             self.config_dict = self.load_config()
         self.parsed_layout = self.parse_layout()
         self.init_component_subscription()
+
+    @property
+    def name(self):
+        """
+        get the identifier of the dashboard, the default is the class name of dashboard
+        :return: the dashboard identifier
+        """
+        return self.config_name or self.__module__.split('.')[-1]
 
     @property
     def display_name(self):
