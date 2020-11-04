@@ -2,6 +2,7 @@ from importlib import import_module
 
 import dash
 import dash_html_components as html
+import dash_core_components as dcc
 import dash_table
 from dash.dependencies import Input, Output
 from flask_caching import Cache
@@ -85,7 +86,7 @@ class ConfigurableDashboard(Dashboard):
         self.config_dict = kwargs.get('config', None)
         if not self.config_dict:
             self.config_dict = self.load_config()
-        self.parsed_layout = self.parse_rows(self.config_dict['layout'])
+        self.parsed_layout = self.parse_layout()
         self.init_component_subscription()
 
     @property
@@ -102,6 +103,18 @@ class ConfigurableDashboard(Dashboard):
         :return: the loaded config dict
         """
         raise NotImplementedError("The target is required")
+
+    def parse_layout(self):
+        layout = []
+        if 'components' in self.config_dict:
+            for comp_key, comp in self.config_dict['components'].items():
+                if comp['type'] == 'store':
+                    store_id = self.name + '_' + comp_key
+                    store_type = comp.get('subType', 'session')
+                    assert store_type in ('local', 'session', 'memory'), 'invalid store type'
+                    layout.append(dcc.Store(id=store_id, storage_type=store_type))
+        layout.extend(self.parse_rows(self.config_dict['layout']))
+        return layout
 
     def parse_rows(self, rows):
         """
@@ -153,6 +166,8 @@ class ConfigurableDashboard(Dashboard):
             comp_data = self._load_component_data(component) if auto_render else []
             component_id = self.name + '_' + comp_key
 
+            assert component['type'] != 'store', 'the component to render cannot be of type store'
+
             if component['type'] == 'filter':
                 return self._init_component_filter(component_id, component, comp_data)
             if component['type'] == 'chart':
@@ -167,28 +182,44 @@ class ConfigurableDashboard(Dashboard):
                 component = self.config_dict['components'][comp_key]
                 if component['type'] == 'filter':
                     return 'options'
-                elif component['type'] == 'widget':
+                if component['type'] == 'widget':
                     return 'children'
+                if component['type'] == 'store':
+                    return 'data'
                 return 'children'
             return None
 
         def _get_output_field(comp_key):
-            return 'value'
+            if comp_key in self.config_dict['components']:
+                component = self.config_dict['components'][comp_key]
+                if component['type'] == 'store':
+                    return 'data'
+                return 'value'
+            return None
 
         subscribes = self.config_dict['subscribes'] if 'subscribes' in self.config_dict else dict()
         for (output_key, inputs) in subscribes.items():
-            add_callback = self.app.callback(Output(self.name + '_' + output_key, _get_input_field(output_key)),
+            output_id = self.name + '_' + output_key
+            add_callback = self.app.callback(Output(output_id, _get_input_field(output_key)),
                                              [Input(self.name + '_' + input_item['key'],
                                                     _get_output_field(input_item['key']))
                                               for input_item in inputs])
 
             input_as = [input_item['as'] for input_item in inputs]
             add_callback(self._render_component_func(output_key, input_as))
+            # print('subscribe', output_key, _get_input_field(output_key), 'to',)
+            # for input_item in inputs:
+            #     print(input_item['key'], _get_output_field(input_item['key']))
 
     def _load_component_data(self, comp, **kwargs):
         import pandas as pd
         import json
-        raw_data = [] if 'task' not in comp else self.context.get_task(comp['task']).execute_internal(self.context, **kwargs)
+
+        if 'task' in comp:
+            raw_data = self.context.get_task(comp['task']).execute_internal(self.context, **kwargs)
+        else:
+            assert comp['type'] != 'store', 'the task of store is *REQUIRED*'
+            raw_data = kwargs.get('data', [])
 
         if isinstance(raw_data, pd.DataFrame):
             data = json.loads(raw_data.to_json(orient='records'))
