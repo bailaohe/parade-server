@@ -19,6 +19,8 @@ class GanttChart(CustomChart):  # noqa: H601
     rh = 1
     """Height of each rectangular task."""
 
+    color_lookup = {}
+
     def create_traces(self, df_raw, **kwargs):
         """Return traces for plotly chart.
 
