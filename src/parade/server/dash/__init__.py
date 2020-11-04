@@ -2,7 +2,6 @@ from importlib import import_module
 
 import dash
 import dash_html_components as html
-import dash_core_components as dcc
 import dash_table
 from dash.dependencies import Input, Output
 from flask_caching import Cache
@@ -53,6 +52,14 @@ class Dashboard(object):
         :return: the dash-layout segment of the dashboard
         """
         return html.Div([html.H1('Content of dashboard [' + self.name + ']')])
+
+
+class DashboardComponent(object):
+    def init_layout(self, component_id, component, data):
+        pass
+
+    def refresh_layout(self, component, data):
+        pass
 
 
 class ConfigurableDashboard(Dashboard):
@@ -141,20 +148,16 @@ class ConfigurableDashboard(Dashboard):
         :return: the parsed component
         """
         if comp_key in self.config_dict['components']:
-            auto_render = 'subscribes' not in self.config_dict or comp_key not in self.config_dict['subscribes']
             component = self.config_dict['components'][comp_key]
+            auto_render = 'subscribes' not in self.config_dict or comp_key not in self.config_dict['subscribes']
             comp_data = self._load_component_data(component) if auto_render else []
             component_id = self.name + '_' + comp_key
 
             if component['type'] == 'filter':
-                return dcc.Dropdown(
-                    id=component_id,
-                    # options=self._load_component_data(component) if auto_render else [{'label': '-', 'value': '-'}],
-                    options=comp_data,
-                    value=None,
-                    clearable=False,
-                    placeholder=component['title']
-                )
+                return self._init_component_filter(component_id, component, comp_data)
+            if component['type'] == 'chart':
+                return self._init_component_chart(component_id, component, comp_data)
+
             return html.Div(id=component_id)
         return 'INVALID COMPONENT [' + comp_key + ']'
 
@@ -185,7 +188,7 @@ class ConfigurableDashboard(Dashboard):
     def _load_component_data(self, comp, **kwargs):
         import pandas as pd
         import json
-        raw_data = self.context.get_task(comp['task']).execute_internal(self.context, **kwargs)
+        raw_data = [] if 'task' not in comp else self.context.get_task(comp['task']).execute_internal(self.context, **kwargs)
 
         if isinstance(raw_data, pd.DataFrame):
             data = json.loads(raw_data.to_json(orient='records'))
@@ -195,32 +198,65 @@ class ConfigurableDashboard(Dashboard):
         return data
 
     def _render_component(self, comp, data):
-        render_output = data if comp['type'] == 'filter' else [
-            html.H4(children=comp['title'], style={
+        if comp['type'] == 'filter':
+            return self._render_component_filter(comp, data)
+        if comp['type'] == 'table':
+            return self._render_component_table(comp, data)
+        if comp['type'] == 'chart':
+            return self._render_component_chart(comp, data)
+        return data
+
+    def _render_component_filter(self, component, data):
+        assert component['type'] == 'filter', 'invalid filter component'
+        from .filter import load_filter_component_class
+        filter_class = load_filter_component_class(self.context, component['subType'])
+        filter_main = filter_class()
+        return filter_main.refresh_layout(component, data)
+
+    def _init_component_filter(self, filter_id, component, data):
+        assert component['type'] == 'filter', 'invalid filter component'
+        from .filter import load_filter_component_class
+        filter_class = load_filter_component_class(self.context, component['subType'])
+        filter_main = filter_class()
+        return filter_main.init_layout(filter_id, component, data)
+
+    def _render_component_chart(self, chart, data):
+        assert chart['type'] == 'chart', 'invalid chart component'
+        from .chart import load_chart_component_class
+        chart_class = load_chart_component_class(self.context, chart['subType'])
+        chart_main = chart_class(
+            title=chart['title'],
+            xlabel=None,
+            ylabel=None,
+        )
+        return chart_main.refresh_layout(chart, data)
+
+    def _init_component_chart(self, chart_id, chart, data):
+        assert chart['type'] == 'chart', 'invalid chart component'
+        from parade.server.dash.chart import load_chart_component_class
+        chart_class = load_chart_component_class(self.context, chart['subType'])
+        chart_main = chart_class(
+            title=chart['title'],
+            xlabel=None,
+            ylabel=None,
+        )
+        return chart_main.init_layout(chart_id, chart, data)
+
+    def _render_component_table(self, table, data):
+        assert table['type'] == 'table', 'invalid chart component'
+        render_output = [
+            html.H4(children=table['title'], style={
                 'text-align': 'center'
             }),
         ]
         if len(data) > 0:
-            if 'type' in comp and comp['type'] == 'table':
-                import pandas as pd
-                df = pd.DataFrame.from_records(data)
-                render_output.append(html.Div(
-                    dash_table.DataTable(
-                        data=df.to_dict('records'),
-                        columns=[{'id': c, 'name': c} for c in df.columns],
-                    )))
-            if 'type' in comp and comp['type'] == 'chart':
-                from parade.server.dash.chart.gantt import GanttChart
-                import pandas as pd
-                chart_main = GanttChart(
-                    title=comp['title'],
-                    xlabel=None,
-                    ylabel=None,
-                )
-                render_output.append(html.Div(
-                    min_graph(
-                        figure=chart_main.create_figure(df_raw=data),
-                    )))
+            import pandas as pd
+            df = pd.DataFrame.from_records(data)
+            render_output.append(html.Div(
+                dash_table.DataTable(
+                    data=df.to_dict('records'),
+                    columns=[{'id': c, 'name': c} for c in df.columns],
+                )))
         return render_output
 
     def _render_component_func(self, comp_key, input_arg_names):
@@ -256,7 +292,7 @@ class ConfigurableDashboard(Dashboard):
 
             if 'convert' in comp:
                 dash_mod = import_module(self.context.name + '.dashboard')
-                output_processor = getattr(dash_mod, '_processor_' + comp['convert'])
+                output_processor = getattr(dash_mod, '_converter_' + comp['convert'])
                 comp_data = output_processor(comp_data)
 
             output = self._render_component(comp, comp_data)

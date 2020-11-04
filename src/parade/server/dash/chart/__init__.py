@@ -1,9 +1,10 @@
 import plotly.graph_objects as go
 
-from ..utils import validate
+from .. import DashboardComponent
+from ..utils import validate, min_graph
 
 
-class CustomChart:  # noqa: H601
+class CustomChart(DashboardComponent):  # noqa: H601
     """Base Class for Custom Charts."""
 
     annotations = []
@@ -145,3 +146,36 @@ class CustomChart:  # noqa: H601
                 layout[parent_key] = value
 
         return layout
+
+    def refresh_layout(self, chart, data):
+        import dash_html_components as html
+        render_output = [
+            html.H4(children=chart['title'], style={
+                'text-align': 'center'
+            }),
+        ]
+        if len(data) > 0:
+            render_output.append(min_graph(
+                figure=self.create_figure(df_raw=data),
+            ))
+        return render_output
+
+    def init_layout(self, chart_id, chart, data):
+        import dash_html_components as html
+        if len(data) == 0:
+            return html.Div(id=chart_id)
+        return html.Div(self.refresh_layout(chart, data), id=chart_id)
+
+
+_driver_class_cache = {}
+
+
+def load_chart_component_class(context, driver):
+    from parade.utils.modutils import iter_classes
+    if driver not in _driver_class_cache:
+        for chart_class in iter_classes(CustomChart, 'parade.server.dash.chart', context.name + '.dashboard.chart',
+                                        class_filter=lambda cls: cls != CustomChart):
+            chart_key = chart_class.__module__.split('.')[-1]
+            if chart_key not in _driver_class_cache:
+                _driver_class_cache[chart_key] = chart_class
+    return _driver_class_cache[driver]

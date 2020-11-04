@@ -55,21 +55,6 @@ def load_contrib_apis(app, context):
             pass
 
 
-tab_style = {
-    'borderBottom': '1px solid #d6d6d6',
-    'padding': '6px',
-    'fontWeight': 'bold'
-}
-
-tab_selected_style = {
-    'borderTop': '1px solid #d6d6d6',
-    'borderBottom': '1px solid #d6d6d6',
-    'backgroundColor': '#119DFF',
-    'color': 'white',
-    'padding': '6px'
-}
-
-
 def _load_dash(app, context):
     import dash_html_components as html
     import dash_core_components as dcc
@@ -106,6 +91,8 @@ def _load_dash(app, context):
                 rel='stylesheet')
         ],
     )
+    
+    banner_no_dash = '请选择报表'
 
     @app.callback(Output("dash-content", "children"),
                   [Input('dash-url', 'pathname')])
@@ -118,7 +105,7 @@ def _load_dash(app, context):
             tab = path_tab
             if tab in dashboards:
                 return dashboards[tab].layout
-        return html.Div([html.H1("No dashboard selected")])
+        return html.Div([html.H1(banner_no_dash)])
 
     @app.callback(Output("dash-nav", "children"),
                   [Input('dash-url', 'pathname')])
