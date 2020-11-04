@@ -91,28 +91,28 @@ def _load_dash(app, context):
     @app.callback(Output("dash-content", "children"),
                   [Input('dash-url', 'pathname')])
     def render_content(path):
-        path_tab = path[len('/dashboard/'):]
-        if len(path_tab) == 0:
-            path_tab = None
+        if path:
+            path_tab = path[len('/dashboard/'):]
+            if len(path_tab) == 0:
+                path_tab = None
 
-        tab = path_tab
-        if tab in dashboards:
-            return dashboards[tab].layout
-        else:
-            return html.Div([html.H1("No dashboard selected")])
+            tab = path_tab
+            if tab in dashboards:
+                return dashboards[tab].layout
+        return html.Div([html.H1("No dashboard selected")])
 
     @app.callback(Output("dash-nav", "children"),
                   [Input('dash-url', 'pathname')])
     def render_content(path):
-        path_tab = path[len('/dashboard/'):]
-        if len(path_tab) == 0:
-            path_tab = None
+        if path:
+            path_tab = path[len('/dashboard/'):]
+            if len(path_tab) == 0:
+                path_tab = None
 
-        tab = path_tab
-        if tab in dashboards:
-            return [dcc.Link(dashboards[dashkey].display_name, href='/dashboard/' + dashkey, className='active' if tab == dashkey else 'inactive') for dashkey in dashboards]
-        else:
-            return [dcc.Link(dashboards[dashkey].display_name, href='/dashboard/' + dashkey) for dashkey in dashboards]
+            tab = path_tab
+            if tab in dashboards:
+                return [dcc.Link(dashboards[dashkey].display_name, href='/dashboard/' + dashkey, className='active' if tab == dashkey else 'inactive') for dashkey in dashboards]
+        return [dcc.Link(dashboards[dashkey].display_name, href='/dashboard/' + dashkey) for dashkey in dashboards]
 
 
 def _init_web(context, enable_auth):

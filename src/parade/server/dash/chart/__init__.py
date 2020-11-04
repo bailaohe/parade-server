@@ -104,7 +104,7 @@ class CustomChart:  # noqa: H601
         """
         layout = {
             'annotations': self.annotations,
-            'title': go.layout.Title(text=self.title),
+            # 'title': go.layout.Title(text=self.title),
             'xaxis': {
                 'automargin': True,
                 'title': self.labels['x'],

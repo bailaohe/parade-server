@@ -57,18 +57,20 @@ class Dashboard(object):
 
 class ConfigurableDashboard(Dashboard):
     """
-    SimpleDashboard adds some strong constraints to dashboard system.
-    In SimpleDashboard, we assume the dashboard contains two section:
-    **Filters** and **Widgets**.
+    ConfigurableDashboard adds some strong constraints to dashboard system.
+    In ConfigurableDashboard, we assume every dashboard can be describe with
+    three kind of info: **Layout**, **Components**, and *Subscriptions*.
 
-    Filter section contains one or more filters to compose a filter-chain
-    with the last one as **trigger**. When the trigger filter is fired,
-    one or several data frame will be retrieved and cached to render
-    the widget section.
+    Layout describes the position information of all components in the
+    dashboard.
 
-    Widget section is used to layout all visualized widgets. All these
-    widget is rendered with a single data frame cached and retrieved
-    when trigger filter is fired.
+    Components is the core parts of a dashboard. They retrieve the backend
+    data and render the output in different widgets (charts / table). They
+    can be divided into two categories: **Filters** and **Widgets**. Filters
+    act as **trigger** to fire the output rendering of other widgets.
+
+    Subscriptions indicate the data subscription relationship from filters to
+    widgets.
     """
 
     def __init__(self, app: dash.Dash, context: Context):
@@ -120,7 +122,7 @@ class ConfigurableDashboard(Dashboard):
                 row_layout.append(html.Div(sub_rows_layout, className='parade-col ' + col_width))
             elif col_type == 'component':
                 if 'component' in col:
-                    row_layout.append(html.Div(self.parse_component(col['component']),
+                    row_layout.append(html.Div(self.init_component(col['component']),
                                                className='parade-widget ' + col_width))
                 else:
                     row_layout.append(html.Div(['HOLDER', html.Br(), col_width],
@@ -130,7 +132,7 @@ class ConfigurableDashboard(Dashboard):
 
         return row_layout
 
-    def parse_component(self, comp_key):
+    def init_component(self, comp_key):
         """
         parse the component layout
         :param comp_key: the component key
@@ -145,17 +147,13 @@ class ConfigurableDashboard(Dashboard):
             if component['type'] == 'filter':
                 return dcc.Dropdown(
                     id=component_id,
-                    #options=self._load_component_data(component) if auto_render else [{'label': '-', 'value': '-'}],
+                    # options=self._load_component_data(component) if auto_render else [{'label': '-', 'value': '-'}],
                     options=comp_data,
                     value=None,
                     clearable=False,
-                    # placeholder='placeholder'
+                    placeholder=component['title']
                 )
-            elif component['type'] == 'table':
-                return html.Div([], id=component_id)
-            elif component['type'] == 'chart':
-                return html.Div([], id=component_id)
-            return 'children'
+            return html.Div(id=component_id)
         return 'INVALID COMPONENT [' + comp_key + ']'
 
     def init_component_subscription(self):
@@ -195,32 +193,33 @@ class ConfigurableDashboard(Dashboard):
         return data
 
     def _render_component(self, comp, data):
-        if len(data) == 0:
-            return data
-        if 'type' in comp and comp['type'] == 'table':
-            import pandas as pd
-            df = pd.DataFrame.from_records(data)
-            return dash_table.DataTable(
-                data=df.to_dict('records'),
-                columns=[{'id': c, 'name': c} for c in df.columns],
-            )
-        if 'type' in comp and comp['type'] == 'chart':
-            from parade.server.dash.chart.gantt import GanttChart
-            import pandas as pd
-            chart_main = GanttChart(
-                title=comp['title'],
-                xlabel=None,
-                ylabel=None,
-            )
-            return html.Div(
-                children=[
-                    # html.H4(children=self.name),
-                    html.Div([min_graph(
+        render_output = data if comp['type'] == 'filter' else [
+            html.H4(children=comp['title'], style={
+                'text-align': 'center'
+            }),
+        ]
+        if len(data) > 0:
+            if 'type' in comp and comp['type'] == 'table':
+                import pandas as pd
+                df = pd.DataFrame.from_records(data)
+                render_output.append(html.Div(
+                    dash_table.DataTable(
+                        data=df.to_dict('records'),
+                        columns=[{'id': c, 'name': c} for c in df.columns],
+                    )))
+            if 'type' in comp and comp['type'] == 'chart':
+                from parade.server.dash.chart.gantt import GanttChart
+                import pandas as pd
+                chart_main = GanttChart(
+                    title=comp['title'],
+                    xlabel=None,
+                    ylabel=None,
+                )
+                render_output.append(html.Div(
+                    min_graph(
                         figure=chart_main.create_figure(df_raw=data),
-                    )]),
-                ],
-            )
-        return data
+                    )))
+        return render_output
 
     def _render_component_func(self, comp_key, input_arg_names):
         import functools
@@ -235,6 +234,7 @@ class ConfigurableDashboard(Dashboard):
             else:
                 # set the default cache timeout to 10 seconds
                 cache = self.cache
+
                 @cache.memoize(timeout=10)
                 def reload_data(cache_key):
                     data = self._load_component_data(comp, **kwargs)
