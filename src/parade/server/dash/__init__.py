@@ -175,8 +175,51 @@ class ConfigurableDashboard(Dashboard):
                 id=comp_id + "-loading",
                 children=layout,
                 type="circle",
-                # className="parade-row full",
             )
+
+        def demo_map():
+            import plotly.graph_objects as go
+            import json
+            import pandas as pd
+            from os.path import join
+            import numpy as np
+
+            dataset_dir = join(self.context.workdir, 'dataset')
+
+            with open(join(dataset_dir, "china_province.geojson")) as f:
+                provinces_map = json.load(f)
+
+            df = pd.read_csv(join(dataset_dir, 'data.csv'))
+            df['确诊_log'] = df.确诊.map(np.log)
+            fig = go.Figure(
+                go.Choroplethmapbox(
+                    featureidkey="properties.NL_NAME_1",
+                    geojson=provinces_map,
+                    locations=df.地区,
+                    z=df.确诊_log,
+                    zauto=True,
+                    colorscale='viridis',
+                    reversescale=False,
+                    marker_opacity=0.8,
+                    marker_line_width=0.8,
+                    customdata=np.vstack((df.地区, df.确诊, df.疑似, df.治愈, df.死亡)).T,
+                    hovertemplate="<b>%{customdata[0]}</b><br><br>"
+                                  + "确诊：%{customdata[1]}<br>"
+                                  + "疑似：%{customdata[2]}<br>"
+                                  + "治愈：%{customdata[3]}<br>"
+                                  + "死亡：%{customdata[4]}<br>"
+                                  + "<extra></extra>",
+                    showscale=True,
+                ),
+            )
+            fig.update_layout(
+                mapbox_style="open-street-map",
+                mapbox_zoom=3,
+                mapbox_center={"lat": 37.110573, "lon": 106.493924},
+                height=800
+            )
+            config = {'displayModeBar': False}
+            return dcc.Graph(config=config, figure=fig)
 
         if comp_key in self.config_dict['components']:
             component = self.config_dict['components'][comp_key]
@@ -192,6 +235,8 @@ class ConfigurableDashboard(Dashboard):
                 return loading_wrapper(component_id, self._init_component_chart(component_id, component, comp_data))
             if component['type'] == 'table':
                 return loading_wrapper(component_id, html.Div(id=component_id))
+            if component['type'] == 'map':
+                return demo_map()
 
             return html.Div(id=component_id)
         return 'INVALID COMPONENT [' + comp_key + ']'

@@ -21,6 +21,7 @@ def validate(document, schema, **validator_kwargs):
     validator.validate(document)
     return validator.errors
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 # Time Helpers
 
@@ -74,6 +75,8 @@ FIGURE_PLACEHOLDER = {'data': [], 'layout': {}, 'frames': []}
 """Figure placeholder."""
 
 import dash_core_components as dcc
+
+
 def min_graph(config=None, figure=FIGURE_PLACEHOLDER, **kwargs):
     """Return dcc.Graph element with Plotly overlay removed.
 
