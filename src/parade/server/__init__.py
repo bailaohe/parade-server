@@ -63,35 +63,40 @@ def _load_dash(app, context):
     # load the dashboards
     dashboards = load_dashboards_by_config(app, context)
     # load the dashboard options
-    dashboard_links = [dcc.Link(dashboards[dashkey].display_name, href='/dashboard/' + dashkey, className='active') for dashkey in dashboards]
+    dashboard_links = [dcc.Link(dashboards[dashkey].display_name, href='/dashboard/' + dashkey, className='active') for
+                       dashkey in dashboards]
 
-    app.layout = html.Div(
-        [
-            dcc.Location(id='dash-url', refresh=False),
+    dash_layout = [
+        dcc.Location(id='dash-url', refresh=False),
 
-            html.Div(dashboard_links, className='sidebar', id='dash-nav'),
+        html.Div(dashboard_links, className='sidebar', id='dash-nav'),
 
-            # dash content
-            dcc.Loading(
-                id="dash-content-loading",
-                children=[html.Div(id="dash-content", className='content')],
-                type="circle",
-                className="parade-row full",
-            ),
+        # dash content
+        dcc.Loading(
+            id="dash-content-loading",
+            children=[html.Div(id="dash-content", className='content')],
+            type="circle",
+            className="parade-row full",
+        ),
 
-            # the base stylesheet
-            html.Link(
-                href='https://res.xiaomai5.com/parade/parade-dash.css',
-                rel='stylesheet'),
-            html.Link(
-                href='/static/nav.css',
-                rel='stylesheet'),
-            html.Link(
-                href='/static/dash.css',
-                rel='stylesheet')
-        ],
-    )
-    
+        # the base stylesheet
+        html.Link(
+            href='https://res.xiaomai5.com/parade/parade-dash.css',
+            rel='stylesheet'),
+    ]
+
+    def get_local_dash_stylesheets():
+        import os
+        dash_dir = os.path.join(context.workdir, 'web', 'static', 'dash')
+        if os.path.exists(dash_dir):
+            local_stylesheets = [html.Link(href='/static/dash/' + f, rel='stylesheet') for f in os.listdir(dash_dir) if
+                                 os.path.isfile(os.path.join(dash_dir, f)) and f.endswith('.css')]
+            return local_stylesheets
+        return []
+
+    dash_layout.extend(get_local_dash_stylesheets())
+    app.layout = html.Div(dash_layout)
+
     banner_no_dash = '请选择报表'
 
     @app.callback(Output("dash-content", "children"),
@@ -117,7 +122,8 @@ def _load_dash(app, context):
 
             tab = path_tab
             if tab in dashboards:
-                return [dcc.Link(dashboards[dashkey].display_name, href='/dashboard/' + dashkey, className='active' if tab == dashkey else 'inactive') for dashkey in dashboards]
+                return [dcc.Link(dashboards[dashkey].display_name, href='/dashboard/' + dashkey,
+                                 className='active' if tab == dashkey else 'inactive') for dashkey in dashboards]
         return [dcc.Link(dashboards[dashkey].display_name, href='/dashboard/' + dashkey) for dashkey in dashboards]
 
 

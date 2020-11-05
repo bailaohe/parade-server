@@ -12,14 +12,12 @@ class DateRangePicker(CustomFilter):
                 # max_date_allowed=date(2017, 9, 19),
                 # initial_visible_month=date(2017, 8, 5),
                 # end_date=date(2017, 8, 25)
+                start_date_placeholder_text=component['title'][0],
+                end_date_placeholder_text=component['title'][1],
                 style={
-                    'float': 'right'
+                    'width': '100%'
                 }
             ),
-            html.Label(component['title'], style={
-                'margin-right': 10,
-                'line-height': 48
-            })
         ]
 
     def refresh_layout(self, component, data):
