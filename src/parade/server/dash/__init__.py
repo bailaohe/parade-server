@@ -169,6 +169,15 @@ class ConfigurableDashboard(Dashboard):
         :param comp_key: the component key
         :return: the parsed component
         """
+
+        def loading_wrapper(comp_id, layout):
+            return dcc.Loading(
+                id=comp_id + "-loading",
+                children=layout,
+                type="circle",
+                # className="parade-row full",
+            )
+
         if comp_key in self.config_dict['components']:
             component = self.config_dict['components'][comp_key]
             auto_render = 'subscribes' not in self.config_dict or comp_key not in self.config_dict['subscribes']
@@ -180,7 +189,9 @@ class ConfigurableDashboard(Dashboard):
             if component['type'] == 'filter':
                 return self._init_component_filter(component_id, component, comp_data)
             if component['type'] == 'chart':
-                return self._init_component_chart(component_id, component, comp_data)
+                return loading_wrapper(component_id, self._init_component_chart(component_id, component, comp_data))
+            if component['type'] == 'table':
+                return loading_wrapper(component_id, html.Div(id=component_id))
 
             return html.Div(id=component_id)
         return 'INVALID COMPONENT [' + comp_key + ']'
@@ -216,9 +227,6 @@ class ConfigurableDashboard(Dashboard):
 
             input_as = [input_item['as'] for input_item in inputs]
             add_callback(self._render_component_func(output_key, input_as))
-            # print('subscribe', output_key, _get_input_field(output_key), 'to',)
-            # for input_item in inputs:
-            #     print(input_item['key'], _get_output_field(input_item['key']))
 
     def _load_component_data(self, comp, **kwargs):
         import pandas as pd

@@ -71,13 +71,7 @@ def _load_dash(app, context):
 
         html.Div(dashboard_links, className='sidebar', id='dash-nav'),
 
-        # dash content
-        dcc.Loading(
-            id="dash-content-loading",
-            children=[html.Div(id="dash-content", className='content')],
-            type="circle",
-            className="parade-row full",
-        ),
+        html.Div(id="dash-content", className='content'),
 
         # the base stylesheet
         html.Link(
