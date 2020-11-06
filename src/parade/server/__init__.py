@@ -73,10 +73,10 @@ def _load_dash(app, context):
 
         html.Div(id="dash-content", className='content'),
 
-        # the base stylesheet
-        html.Link(
-            href='https://res.xiaomai5.com/parade/parade-dash.css',
-            rel='stylesheet'),
+        # TODO the base stylesheet
+        # html.Link(
+        #     href='https://res.xiaomai5.com/parade/parade-dash.css',
+        #     rel='stylesheet'),
     ]
 
     def get_local_dash_stylesheets():

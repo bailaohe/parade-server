@@ -1,7 +1,6 @@
-from ..utils import format_unix, get_unix
-from . import CustomChart
 import plotly.graph_objects as go
-from palettable.tableau import tableau
+
+from . import CustomChart
 
 
 class RadarChart(CustomChart):  # noqa: H601
