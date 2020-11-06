@@ -189,7 +189,7 @@ class ConfigurableDashboard(Dashboard):
             with open(join(dataset_dir, "china_province.geojson")) as f:
                 provinces_map = json.load(f)
 
-            df = pd.read_csv(join(dataset_dir, 'data.csv'))
+            df = pd.read_csv(join(dataset_dir, 'data_radar.csv'))
             df['确诊_log'] = df.确诊.map(np.log)
             fig = go.Figure(
                 go.Choroplethmapbox(
@@ -200,6 +200,15 @@ class ConfigurableDashboard(Dashboard):
                     zauto=True,
                     colorscale='viridis',
                     reversescale=False,
+                    marker_opacity=0.8,
+                    marker_line_width=0.8,
+                    customdata=np.vstack((df.地区, df.确诊, df.疑似, df.治愈, df.死亡)).T,
+                    hovertemplate="<b>%{customdata[0]}</b><br><br>"
+                                  + "确诊：%{customdata[1]}<br>"
+                                  + "疑似：%{customdata[2]}<br>"
+                                  + "治愈：%{customdata[3]}<br>"
+                                  + "死亡：%{customdata[4]}<br>"
+                                  + "<extra></extra>",
                     showscale=True,
                 ),
             )
@@ -209,9 +218,8 @@ class ConfigurableDashboard(Dashboard):
                 mapbox_center={"lat": 37.110573, "lon": 106.493924},
                 height=800
             )
-            # config = {'displayModeBar': False}
-            # return dcc.Graph(config=config, figure=fig)
-            return min_graph(figure=fig)
+            config = {'displayModeBar': False}
+            return dcc.Graph(config=config, figure=fig)
 
         if comp_key in self.config_dict['components']:
             component = self.config_dict['components'][comp_key]
