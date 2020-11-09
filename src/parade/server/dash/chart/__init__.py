@@ -46,7 +46,7 @@ class CustomChart(DashboardComponent):  # noqa: H601
         # Assign new axis_range
         self._axis_range = axis_range
 
-    def __init__(self, *, title, xlabel, ylabel, layout_overrides=()):
+    def __init__(self, context, *, title, xlabel, ylabel, layout_overrides=()):
         """Initialize Custom Dash Chart and store parameters as data members.
 
         Args:
@@ -56,6 +56,7 @@ class CustomChart(DashboardComponent):  # noqa: H601
             layout_overrides: Custom parameters in format [ParentKey, SubKey, Value] to customize 'go.layout'
 
         """
+        super(CustomChart, self).__init__(context)
         self.title = title
         self.labels = {'x': xlabel, 'y': ylabel}
         self.layout_overrides = layout_overrides

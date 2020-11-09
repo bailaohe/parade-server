@@ -28,7 +28,8 @@ class ChoroplethMap(CustomChart):  # noqa: H601
                 try:
                     f = urlopen(geojson_path)
                 except ValueError:  # invalid URL
-                    f = open(geojson_path, 'r')
+                    import os
+                    f = open(geojson_path if os.path.isabs(geojson_path) else os.path.join(self.context.workdir, geojson_path), 'r')
 
                 try:
                     geojson_map = json.load(f)

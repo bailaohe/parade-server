@@ -38,11 +38,12 @@ class GanttChart(CustomChart):  # noqa: H601
         for index in [idx for idx, is_na in enumerate(df_raw['start'].isna()) if is_na]:
             df_raw.iloc[index, start_index] = df_raw.iloc[index, end_index]
         df_raw['progress'] = df_raw['progress'].fillna(0)  # Fill possibly missing progress values for milestones
+        df_raw['level'] = df_raw['issue_type'].apply(lambda t: 0 if t == 'Task' else 1)
         df_raw = (df_raw
-                  # .sort_values(by=['category', 'issue_type', 'start', 'end'], ascending=False)
-                  .sort_values(by=['category'], ascending=False)
-                  .sort_values(by=['issue_type'], ascending=True)
-                  .sort_values(by=['start', 'end'], ascending=False)
+                  .sort_values(by=['category', 'level', 'start', 'end'], ascending=False)
+                  # .sort_values(by=['category'], ascending=False)
+                  # .sort_values(by=['issue_type'], ascending=True)
+                  # .sort_values(by=['start', 'end'], ascending=False)
                   .reset_index(drop=True))
 
         # Create color lookup using categories in sorted order
@@ -124,19 +125,30 @@ class GanttChart(CustomChart):  # noqa: H601
         """
 
         color = self.color_lookup[task.category]
-        scatter_kwargs = dict(
-            fill='toself',
-            fillcolor=color,
-            hoverlabel=self.hover_label_settings,
-            legendgroup=color,
-            line={'width': 2, 'color': color if not task.warn else 'firebrick'},
-            # marker={'color': color},
-            mode='lines',
-            showlegend=is_first,
-            text=self._create_hover_text(task),
-            x=[task.start, task.end, task.end, task.start, task.start],
-            y=[y_pos, y_pos, y_pos - self.rh, y_pos - self.rh, y_pos],
-        )
+        if task.sub_count > 0:
+            scatter_kwargs = dict(
+                hoverlabel=self.hover_label_settings,
+                legendgroup=color,
+                line={'width': 4, 'color': color},
+                mode='lines',
+                showlegend=is_first,
+                text=self._create_hover_text(task),
+                x=[task.start, task.start, task.end, task.end],
+                y=[y_pos - self.rh/2, y_pos, y_pos, y_pos - self.rh/2],
+            )
+        else:
+            scatter_kwargs = dict(
+                fill='toself',
+                fillcolor=color,
+                hoverlabel=self.hover_label_settings,
+                legendgroup=color,
+                line={'width': 2, 'color': color},
+                mode='lines',
+                showlegend=is_first,
+                text=self._create_hover_text(task),
+                x=[task.start, task.end, task.end, task.start, task.start],
+                y=[y_pos, y_pos, y_pos - self.rh, y_pos - self.rh, y_pos],
+            )
         if is_first:
             scatter_kwargs['name'] = task.category
         return go.Scatter(**scatter_kwargs)

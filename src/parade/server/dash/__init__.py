@@ -56,6 +56,9 @@ class Dashboard(object):
 
 
 class DashboardComponent(object):
+    def __init__(self, context):
+        self.context = context
+
     def init_layout(self, component_id, component, data):
         pass
 
@@ -303,14 +306,14 @@ class ConfigurableDashboard(Dashboard):
         assert component['type'] == 'filter', 'invalid filter component'
         from .filter import load_filter_component_class
         filter_class = load_filter_component_class(self.context, component['subType'])
-        filter_main = filter_class()
+        filter_main = filter_class(self.context)
         return filter_main.refresh_layout(component, data)
 
     def _init_component_filter(self, filter_id, component, data):
         assert component['type'] == 'filter', 'invalid filter component'
         from .filter import load_filter_component_class
         filter_class = load_filter_component_class(self.context, component['subType'])
-        filter_main = filter_class()
+        filter_main = filter_class(self.context)
         return filter_main.init_layout(filter_id, component, data)
 
     def _render_component_chart(self, chart, data):
@@ -318,6 +321,7 @@ class ConfigurableDashboard(Dashboard):
         from .chart import load_chart_component_class
         chart_class = load_chart_component_class(self.context, chart['subType'])
         chart_main = chart_class(
+            self.context,
             title=chart['title'],
             xlabel=None,
             ylabel=None,
@@ -329,6 +333,7 @@ class ConfigurableDashboard(Dashboard):
         from parade.server.dash.chart import load_chart_component_class
         chart_class = load_chart_component_class(self.context, chart['subType'])
         chart_main = chart_class(
+            self.context,
             title=chart['title'],
             xlabel=None,
             ylabel=None,
