@@ -2,6 +2,7 @@ from ..utils import format_unix, get_unix
 from . import CustomChart
 import plotly.graph_objects as go
 from palettable.tableau import tableau
+import arrow
 
 
 class GanttChart(CustomChart):  # noqa: H601
@@ -48,7 +49,14 @@ class GanttChart(CustomChart):  # noqa: H601
         plotted_categories = []
         # Create the Gantt traces
         traces = []
+        min_task_start = None
+        max_task_end = None
         for task in df_raw.itertuples():
+            if not min_task_start or arrow.get(task.start) < arrow.get(min_task_start):
+                min_task_start = task.start
+            if not max_task_end or arrow.get(task.end) > arrow.get(max_task_end):
+                max_task_end = task.end
+
             y_pos = task.Index * self.rh
             is_first = task.category not in plotted_categories
             plotted_categories.append(task.category)
@@ -56,7 +64,27 @@ class GanttChart(CustomChart):  # noqa: H601
             if task.progress > 0:
                 traces.append(self._create_progress_shape(task, y_pos))
             traces.append(self._create_annotation(task, y_pos))
+
+        now = arrow.now()
+        if now.is_between(arrow.get(min_task_start, max_task_end)):
+            today = now.format('YYYY-MM-DD')
+            traces.append(self._create_date_boundary(today, len(df_raw) * self.rh))
+
         return traces
+
+    def _create_date_boundary(self, mark_date, y_pos):
+        """
+        create the date mark on the gantt chart
+        :param mark_date:
+        :param y_pos:
+        :return:
+        """
+        return go.Scatter(
+            line={'width': 4, 'dash': 'dash', 'color': 'firebrick'},
+            mode='lines',
+            x=[mark_date, mark_date],
+            y=[0, y_pos],
+        )
 
     def _create_hover_text(self, task):
         """Return hover text for given trace.
