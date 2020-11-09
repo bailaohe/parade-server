@@ -39,9 +39,12 @@ class GanttChart(CustomChart):  # noqa: H601
             df_raw.iloc[index, start_index] = df_raw.iloc[index, end_index]
         df_raw['progress'] = df_raw['progress'].fillna(0)  # Fill possibly missing progress values for milestones
         df_raw = (df_raw
-                  .sort_values(by=['category', 'start'], ascending=False)
-                  .sort_values(by=['end'], ascending=False)
+                  # .sort_values(by=['category', 'issue_type', 'start', 'end'], ascending=False)
+                  .sort_values(by=['category'], ascending=False)
+                  .sort_values(by=['issue_type'], ascending=True)
+                  .sort_values(by=['start', 'end'], ascending=False)
                   .reset_index(drop=True))
+
         # Create color lookup using categories in sorted order
         categories = set(df_raw['category'])
         self.color_lookup = {cat: self.pallette[idx] for idx, cat in enumerate(categories)}
@@ -49,7 +52,11 @@ class GanttChart(CustomChart):  # noqa: H601
         plotted_categories = []
         # Create the Gantt traces
         traces = []
+        # the current timestamp
+        now = arrow.now()
+        # the minimum task start timestamp
         min_task_start = None
+        # the maximum task end timestamp
         max_task_end = None
         for task in df_raw.itertuples():
             if not min_task_start or arrow.get(task.start) < arrow.get(min_task_start):
@@ -65,8 +72,7 @@ class GanttChart(CustomChart):  # noqa: H601
                 traces.append(self._create_progress_shape(task, y_pos))
             traces.append(self._create_annotation(task, y_pos))
 
-        now = arrow.now()
-        if now.is_between(arrow.get(min_task_start, max_task_end)):
+        if now.is_between(arrow.get(min_task_start), arrow.get(max_task_end)):
             today = now.format('YYYY-MM-DD')
             traces.append(self._create_date_boundary(today, len(df_raw) * self.rh))
 
@@ -84,6 +90,7 @@ class GanttChart(CustomChart):  # noqa: H601
             mode='lines',
             x=[mark_date, mark_date],
             y=[0, y_pos],
+            showlegend=False,
         )
 
     def _create_hover_text(self, task):
@@ -96,7 +103,7 @@ class GanttChart(CustomChart):  # noqa: H601
             string: HTML-formatted hover text
 
         """
-        dates = [format_unix(get_unix(str_ts, self.date_format), '%a, %d%b%Y') for str_ts in [task.start, task.end]]
+        dates = [format_unix(get_unix(str_ts, self.date_format), '%a, %Y-%m-%d') for str_ts in [task.start, task.end]]
         if task.start != task.end:
             date_range = f'<br><b>Start</b>: {dates[0]}<br><b>End</b>: {dates[1]}'
         else:
@@ -115,14 +122,15 @@ class GanttChart(CustomChart):  # noqa: H601
             trace: single Dash chart Scatter trace
 
         """
+
         color = self.color_lookup[task.category]
         scatter_kwargs = dict(
             fill='toself',
             fillcolor=color,
             hoverlabel=self.hover_label_settings,
             legendgroup=color,
-            line={'width': 1},
-            marker={'color': color},
+            line={'width': 2, 'color': color if not task.warn else 'firebrick'},
+            # marker={'color': color},
             mode='lines',
             showlegend=is_first,
             text=self._create_hover_text(task),
@@ -181,8 +189,9 @@ class GanttChart(CustomChart):  # noqa: H601
             legendgroup=self.color_lookup[task.category],
             mode='text',
             showlegend=False,
-            text=task.label,
-            textposition='middle left',
+            text=('' if not task.warn else '[' + task.warn + ']') + task.label,
+            textposition='middle right',
+            textfont=dict(color='SteelBlue' if not task.warn else 'firebrick'),
             x=[task.end],
             y=[y_pos - self.rh / 2],
         )
