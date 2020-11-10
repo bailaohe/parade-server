@@ -41,9 +41,6 @@ class GanttChart(CustomChart):  # noqa: H601
         df_raw['level'] = df_raw['issue_type'].apply(lambda t: 0 if t == 'Task' else 1)
         df_raw = (df_raw
                   .sort_values(by=['category', 'level', 'start', 'end'], ascending=False)
-                  # .sort_values(by=['category'], ascending=False)
-                  # .sort_values(by=['issue_type'], ascending=True)
-                  # .sort_values(by=['start', 'end'], ascending=False)
                   .reset_index(drop=True))
 
         # Create color lookup using categories in sorted order
