@@ -342,6 +342,9 @@ class ConfigurableDashboard(Dashboard):
 
     def _render_component_table(self, table, df):
         assert table['type'] == 'table', 'invalid chart component'
+        from parade.server.dash.table import load_table_component_class
+        table_class = load_table_component_class(self.context, table['subType'])
+        table_main = table_class(self.context)
         render_output = [
             html.H4(children=table['title'], style={
                 'text-align': 'center'
@@ -350,7 +353,7 @@ class ConfigurableDashboard(Dashboard):
         if len(df) > 0:
             # import pandas as pd
             # df = pd.DataFrame.from_records(data)
-            render_output.append(html.Div(
+            render_output.append(tml.Div(
                 dash_table.DataTable(
                     data=df.to_dict('records'),
                     columns=[{'id': c, 'name': c} for c in df.columns],
