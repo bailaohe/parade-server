@@ -237,7 +237,7 @@ class ConfigurableDashboard(Dashboard):
             if component['type'] == 'chart':
                 return loading_wrapper(component_id, self._init_component_chart(component_id, component, comp_data))
             if component['type'] == 'table':
-                return loading_wrapper(component_id, html.Div(id=component_id))
+                return loading_wrapper(component_id, self._init_component_table(component_id, component, comp_data))
             if component['type'] == 'map':
                 return demo_map()
 
@@ -340,26 +340,19 @@ class ConfigurableDashboard(Dashboard):
         )
         return chart_main.init_layout(chart_id, chart, data)
 
-    def _render_component_table(self, table, df):
-        assert table['type'] == 'table', 'invalid chart component'
-        from parade.server.dash.table import load_table_component_class
-        table_class = load_table_component_class(self.context, table['subType'])
+    def _init_component_table(self, table_id, table, data):
+        assert table['type'] == 'table', 'invalid table component'
+        from .table import load_table_component_class
+        table_class = load_table_component_class(self.context, table['subType'] if 'subType' in table else 'core')
         table_main = table_class(self.context)
-        render_output = [
-            html.H4(children=table['title'], style={
-                'text-align': 'center'
-            }),
-        ]
-        if len(df) > 0:
-            # import pandas as pd
-            # df = pd.DataFrame.from_records(data)
-            render_output.append(tml.Div(
-                dash_table.DataTable(
-                    data=df.to_dict('records'),
-                    columns=[{'id': c, 'name': c} for c in df.columns],
-                    style_cell={'textAlign': 'left'},
-                )))
-        return render_output
+        return table_main.init_layout(table_id, table, data)
+
+    def _render_component_table(self, table, df):
+        assert table['type'] == 'table', 'invalid table component'
+        from .table import load_table_component_class
+        table_class = load_table_component_class(self.context, table['subType'] if 'subType' in table else 'core')
+        table_main = table_class(self.context)
+        return table_main.refresh_layout(table, df)
 
     def _render_component_func(self, comp_key, input_arg_names):
         import functools
