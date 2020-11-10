@@ -340,20 +340,21 @@ class ConfigurableDashboard(Dashboard):
         )
         return chart_main.init_layout(chart_id, chart, data)
 
-    def _render_component_table(self, table, data):
+    def _render_component_table(self, table, df):
         assert table['type'] == 'table', 'invalid chart component'
         render_output = [
             html.H4(children=table['title'], style={
                 'text-align': 'center'
             }),
         ]
-        if len(data) > 0:
-            import pandas as pd
-            df = pd.DataFrame.from_records(data)
+        if len(df) > 0:
+            # import pandas as pd
+            # df = pd.DataFrame.from_records(data)
             render_output.append(html.Div(
                 dash_table.DataTable(
                     data=df.to_dict('records'),
                     columns=[{'id': c, 'name': c} for c in df.columns],
+                    style_cell={'textAlign': 'left'},
                 )))
         return render_output
 
