@@ -20,6 +20,7 @@ class CoreTable(CustomTable):
                     data=df.to_dict('records'),
                     columns=[{'id': c, 'name': c} for c in df.columns],
                     style_cell={'textAlign': 'left'},
+                    **table['args']
                 )))
         return render_output
 
