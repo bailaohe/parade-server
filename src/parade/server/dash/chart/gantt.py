@@ -45,7 +45,7 @@ class GanttChart(CustomChart):  # noqa: H601
 
         # Create color lookup using categories in sorted order
         categories = set(df_raw['category'])
-        self.color_lookup = {cat: self.pallette[idx] for idx, cat in enumerate(categories)}
+        self.color_lookup = {cat: self.pallette[idx % len(self.pallette)] for idx, cat in enumerate(categories)}
         # Track which categories have been plotted
         plotted_categories = []
         # Create the Gantt traces
