@@ -156,8 +156,8 @@ class CustomChart(DashboardComponent):  # noqa: H601
             }),
         ]
         if len(data) > 0:
-            fig = self.create_figure(df_raw=data, **chart['args']) if 'args' in chart and chart[
-                'args'] else self.create_figure(df_raw=data)
+            fig = self.create_figure(data, **chart['args']) if 'args' in chart and chart[
+                'args'] else self.create_figure(data)
             render_output.append(min_graph(figure=fig))
         return render_output
 

@@ -18,9 +18,7 @@ class RadarChart(CustomChart):  # noqa: H601
             list: Dash chart traces
 
         """
-        import pandas as pd
         from pandas.core.dtypes.common import is_numeric_dtype
-        df_raw = pd.DataFrame.from_records(df_raw)
         index_column = self.DEFAULT_OBJ_COL
         if index_column not in df_raw.columns:
             index_column = kwargs.get('key')

@@ -180,55 +180,18 @@ class ConfigurableDashboard(Dashboard):
                 type="circle",
             )
 
-        def demo_map():
-            import plotly.graph_objects as go
-            import json
-            import pandas as pd
-            from os.path import join
-            import numpy as np
-
-            dataset_dir = join(self.context.workdir, 'dataset')
-
-            with open(join(dataset_dir, "china_province.geojson")) as f:
-                provinces_map = json.load(f)
-
-            df = pd.read_csv(join(dataset_dir, 'data_radar.csv'))
-            df['确诊_log'] = df.确诊.map(np.log)
-            fig = go.Figure(
-                go.Choroplethmapbox(
-                    featureidkey="properties.NL_NAME_1",
-                    geojson=provinces_map,
-                    locations=df.地区,
-                    z=df.确诊_log,
-                    zauto=True,
-                    colorscale='viridis',
-                    reversescale=False,
-                    marker_opacity=0.8,
-                    marker_line_width=0.8,
-                    customdata=np.vstack((df.地区, df.确诊, df.疑似, df.治愈, df.死亡)).T,
-                    hovertemplate="<b>%{customdata[0]}</b><br><br>"
-                                  + "确诊：%{customdata[1]}<br>"
-                                  + "疑似：%{customdata[2]}<br>"
-                                  + "治愈：%{customdata[3]}<br>"
-                                  + "死亡：%{customdata[4]}<br>"
-                                  + "<extra></extra>",
-                    showscale=True,
-                ),
-            )
-            fig.update_layout(
-                mapbox_style="open-street-map",
-                mapbox_zoom=3,
-                mapbox_center={"lat": 37.110573, "lon": 106.493924},
-                height=800
-            )
-            config = {'displayModeBar': False}
-            return dcc.Graph(config=config, figure=fig)
-
         if comp_key in self.config_dict['components']:
             component = self.config_dict['components'][comp_key]
             auto_render = 'subscribes' not in self.config_dict or comp_key not in self.config_dict['subscribes']
-            comp_data = self._load_component_data(component) if auto_render else []
             component_id = self.name + '_' + comp_key
+
+            comp_data = []
+            if auto_render:
+                comp_data = self._load_component_data(component)
+                if 'convert' in component:
+                    dash_mod = import_module(self.context.name + '.dashboard')
+                    output_processor = getattr(dash_mod, '_converter_' + component['convert'])
+                    comp_data = output_processor(comp_data)
 
             assert component['type'] != 'store', 'the component to render cannot be of type store'
 
@@ -238,8 +201,6 @@ class ConfigurableDashboard(Dashboard):
                 return loading_wrapper(component_id, self._init_component_chart(component_id, component, comp_data))
             if component['type'] == 'table':
                 return loading_wrapper(component_id, self._init_component_table(component_id, component, comp_data))
-            if component['type'] == 'map':
-                return demo_map()
 
             return html.Div(id=component_id)
         return 'INVALID COMPONENT [' + comp_key + ']'
@@ -277,19 +238,17 @@ class ConfigurableDashboard(Dashboard):
             add_callback(self._render_component_func(output_key, input_as))
 
     def _load_component_data(self, comp, **kwargs):
-        import pandas as pd
-        import json
-
         if 'task' in comp:
-            raw_data = self.context.get_task(comp['task']).execute_internal(self.context, **kwargs)
+            data = self.context.get_task(comp['task']).execute_internal(self.context, **kwargs)
+        elif 'query' in comp and 'conn' in comp:
+            data = self.context.load_query(comp['query'], conn=comp['conn'], **kwargs)
         else:
-            assert comp['type'] != 'store', 'the task of store is *REQUIRED*'
-            raw_data = kwargs.get('data', [])
+            assert comp['type'] != 'store', 'the task/query of store is *REQUIRED*'
+            data = kwargs.get('data', [])
 
-        if isinstance(raw_data, pd.DataFrame):
-            data = json.loads(raw_data.to_json(orient='records'))
-        else:
-            data = raw_data
+        import pandas as pd
+        if comp['type'] == 'store' and isinstance(data, pd.DataFrame):
+            return data.to_dict(orient='records')
 
         return data
 

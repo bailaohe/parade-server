@@ -1,49 +1,57 @@
 import plotly.graph_objects as go
 
 from . import CustomChart
+import pandas as pd
 
 
-class Indicator(CustomChart):  # noqa: H601
+class Indicator(CustomChart):
     """Radar Chart: task and milestone timeline."""
 
-    DEFAULT_OBJ_COL = 'key'
-
-    def create_traces(self, data_raw, **kwargs):
+    def create_traces(self, data, **kwargs):
         """Return traces for plotly chart.
 
         Args:
-            df_raw: pandas dataframe with columns: `(category, label, start, end, progress)`
+            data: pandas dataframe with columns: `(category, label, start, end, progress)`
 
         Returns:
             list: Dash chart traces
 
         """
-        return [go.Indicator(
-            mode="number+delta",
-            value=400,
-            number={'prefix': "$"},
-            delta={'position': "top", 'reference': 320},
-            domain={'x': [0, 1], 'y': [0, 1]})]
 
-    #
-    # def create_layout(self, df_raw, **kwargs):
-    #     """Extend the standard layout.
-    #
-    #     Returns:
-    #         dict: layout for Dash figure
-    #
-    #     """
-    #     layout = super().create_layout(df_raw, **kwargs)
-    #     # Suppress Y axis ticks/grid
-    #     layout['yaxis']['showgrid'] = False
-    #     layout['yaxis']['showticklabels'] = False
-    #     layout['yaxis']['zeroline'] = False
-    #
-    #     layout['polar'] = go.layout.Polar(
-    #         radialaxis=dict(
-    #             visible=True,
-    #             range=[0, 5]
-    #         )),
-    #     layout['showlegend'] = False
-    #
-    #     return layout
+        if isinstance(data, pd.DataFrame):
+            data = data.to_dict(orient='records')
+
+        if len(data) == 0:
+            return [go.Indicator(
+                mode="number",
+                value=0,
+                number={'prefix': "$"},
+                domain={'x': [0, 1], 'y': [0, 1]})]
+
+        traces = []
+        number = kwargs.get('number')
+        if not number:
+            if 'prefix' in kwargs or 'suffix' in kwargs:
+                number = {}
+                if 'prefix' in kwargs:
+                    number['prefix'] = kwargs.get('prefix')
+                if 'suffix' in kwargs:
+                    number['suffix'] = kwargs.get('suffix')
+
+        for item in data:
+            mode = kwargs.get('mode', 'number+delta' if 'reference' in item else 'number')
+            delta = {'reference': item['reference']} if 'reference' in item else None
+            title = {'text': item['title']} if 'title' in item else None
+            trace = go.Indicator(
+                mode=mode,
+                title=title,
+                value=item['value'],
+                number=number,
+                delta=delta,
+                domain={'x': [0, 1], 'y': [0, 1]}
+            )
+            traces.append(trace)
+
+        return traces
+
+

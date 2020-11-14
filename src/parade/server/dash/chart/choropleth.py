@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 class ChoroplethMap(CustomChart):  # noqa: H601
     """Gantt Chart: task and milestone timeline."""
 
-    def create_figure(self, df_raw, **kwargs):
+    def create_figure(self, df, **kwargs):
         """Return traces for plotly chart.
 
         Args:
@@ -40,9 +40,6 @@ class ChoroplethMap(CustomChart):  # noqa: H601
 
         location_column = kwargs.get('location')
         z_column = kwargs.get('z')
-
-        import pandas as pd
-        df = pd.DataFrame.from_records(df_raw)
 
         fig = go.Figure(go.Choroplethmapbox(
             featureidkey="properties.NL_NAME_1",
