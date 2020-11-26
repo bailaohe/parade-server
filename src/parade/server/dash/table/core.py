@@ -28,7 +28,7 @@ class CoreTable(CustomTable):
             render_output.append(html.Div(
                 dash_table.DataTable(
                     data=df.to_dict('records'),
-                    columns=[{'id': c, 'name': c} for c in df.columns],
+                    columns=[dict(id=c, name=c) for c in df.columns],
                     **table['args']
                 )))
         return render_output
