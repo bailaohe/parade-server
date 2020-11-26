@@ -4,6 +4,9 @@ import plotly.graph_objects as go
 from palettable.tableau import tableau
 import arrow
 
+_NORMAL_COLOR_ = 'SteelBlue'
+_WARN_COLOR_ = 'firebrick'
+
 
 class GanttChart(CustomChart):  # noqa: H601
     """Gantt Chart: task and milestone timeline."""
@@ -84,7 +87,7 @@ class GanttChart(CustomChart):  # noqa: H601
         :return:
         """
         return go.Scatter(
-            line={'width': 4, 'dash': 'dash', 'color': 'firebrick'},
+            line={'width': 4, 'dash': 'dash', 'color': _WARN_COLOR_},
             mode='lines',
             x=[mark_date, mark_date],
             y=[0, y_pos],
@@ -131,7 +134,7 @@ class GanttChart(CustomChart):  # noqa: H601
                 showlegend=is_first,
                 text=self._create_hover_text(task),
                 x=[task.start, task.start, task.end, task.end],
-                y=[y_pos - self.rh/2, y_pos, y_pos, y_pos - self.rh/2],
+                y=[y_pos - self.rh / 2, y_pos, y_pos, y_pos - self.rh / 2],
             )
         else:
             scatter_kwargs = dict(
@@ -198,12 +201,19 @@ class GanttChart(CustomChart):  # noqa: H601
             legendgroup=self.color_lookup[task.category],
             mode='text',
             showlegend=False,
-            text=('' if not task.warn else '[' + task.warn + ']') + task.label,
+            text=self._create_annotation_text(task),
             textposition='middle right',
-            textfont=dict(color='SteelBlue' if not task.warn else 'firebrick'),
+            textfont=dict(color=_NORMAL_COLOR_ if not task.warn else _WARN_COLOR_),
             x=[task.end],
             y=[y_pos - self.rh / 2],
         )
+
+    def _create_annotation_text(self, task):
+        pure_text = ('' if not task.warn else '[' + task.warn + ']') + task.label
+        if task.link:
+            link_color = _NORMAL_COLOR_ if not task.warn else _WARN_COLOR_
+            return f'<a href="{task.link}" style="color:{link_color}">{pure_text}</a>'
+        return pure_text
 
     def create_layout(self, df_raw, **kwargs):
         """Extend the standard layout.
