@@ -183,6 +183,7 @@ def _init_auth(app, context):
     else:
         from ..utils.modutils import get_class
         auth_cls = get_class(context.conf['auth.driver'], AuthManager, context.name + '.contrib.auth')
+
         app.auth_manager = auth_cls()
 
     @login_manager.request_loader
