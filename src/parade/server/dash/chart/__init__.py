@@ -173,6 +173,7 @@ _driver_class_cache = {}
 
 def load_chart_component_class(context, driver):
     from parade.utils.modutils import iter_classes
+    # import pdb; pdb.set_trace()
     if driver not in _driver_class_cache:
         for chart_class in iter_classes(CustomChart, 'parade.server.dash.chart', context.name + '.dashboard.chart',
                                         class_filter=lambda cls: cls != CustomChart):

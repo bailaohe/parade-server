@@ -206,11 +206,14 @@ class ConfigurableDashboard(Dashboard):
         return 'INVALID COMPONENT [' + comp_key + ']'
 
     def init_component_subscription(self):
+        # 废弃
         def _get_input_field(comp_key):
             if comp_key in self.config_dict['components']:
                 component = self.config_dict['components'][comp_key]
                 if component['type'] == 'filter':
-                    return 'options'
+                    if component['subType'] == 'date_single':
+                        return 'date'
+                    return 'value'
                 if component['type'] == 'widget':
                     return 'children'
                 if component['type'] == 'store':
@@ -218,6 +221,7 @@ class ConfigurableDashboard(Dashboard):
                 return 'children'
             return None
 
+        # 废弃
         def _get_output_field(comp_key):
             if comp_key in self.config_dict['components']:
                 component = self.config_dict['components'][comp_key]
@@ -229,13 +233,22 @@ class ConfigurableDashboard(Dashboard):
         subscribes = self.config_dict['subscribes'] if 'subscribes' in self.config_dict else dict()
         for (output_key, inputs) in subscribes.items():
             output_id = self.name + '_' + output_key
-            add_callback = self.app.callback(Output(output_id, _get_input_field(output_key)),
-                                             [Input(self.name + '_' + input_item['key'],
-                                                    _get_output_field(input_item['key']))
-                                              for input_item in inputs])
 
-            input_as = [input_item['as'] for input_item in inputs]
-            add_callback(self._render_component_func(output_key, input_as))
+            if "output_key" in inputs[0]:
+                output_property = inputs[0]['output_key']
+                # 原先的设计没有考虑到一个输入的input_item对应两个关键参数的情况，比如date_range的start_date和end_date
+                inputs = inputs[1:]
+                add_callback = self.app.callback(Output(output_id, output_property),
+                                                 [Input(self.name + '_' + input_item['key'],
+                                                        input_item['input_key'])
+                                                  for input_item in inputs])
+
+                input_as = [input_item['as'] for input_item in inputs]
+                # input as 是一个dict是相当于回调函数的参数，输出的值要作为output_key对应的
+                # component 的 data/value/children等
+                add_callback(self._render_component_func(output_key, input_as))
+            else:
+                assert "未指定output_key"
 
     def _load_component_data(self, comp, **kwargs):
         if 'task' in comp:
